@@ -3,7 +3,7 @@
   <entry>
     <title>shiro 1.2.4反序列化命令执行漏洞分析</title>
     <url>/2023/03/14/1-2-4%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/</url>
-    <content><![CDATA[<h2 id="shiro-1-2-4反序列化命令执行漏洞分析"><a href="#shiro-1-2-4反序列化命令执行漏洞分析" class="headerlink" title="shiro 1.2.4反序列化命令执行漏洞分析"></a>shiro 1.2.4反序列化命令执行漏洞分析</h2><p>前几天本来想复现fastjson系列的漏洞，但是看了一段时间fastjson的源码变量名称都是x、y、z这种无规则无规范的命名方式，十分头晕，所有打算还是先分析一下shiro的漏洞原理吧。</p>
+    <content><![CDATA[<h2 id="shiro-1-2-4反序列化命令执行漏洞分析"><a href="#shiro-1-2-4反序列化命令执行漏洞分析" class="headerlink" title="shiro 1.2.4反序列化命令执行漏洞分析"></a>shiro 1.2.4反序列化命令执行漏洞分析</h2><p>前几天本来想复现fastjson系列的漏洞，但是看了一段时间fastjson的源码变量名称都是x、y、z这种无规则无规范的命名方式，十分头晕，所有打算还是先分析一下shiro的漏洞原理吧。<br>下方所有实验代码在<a href="https://github.com/f19t/shiro_1.2.4env">https://github.com/f19t/shiro_1.2.4env</a></p>
 <span id="more"></span>
 
 <hr>
@@ -284,73 +284,6 @@
       </tags>
   </entry>
   <entry>
-    <title>Java集合</title>
-    <url>/2023/02/13/Java%E9%9B%86%E5%90%88/</url>
-    <content><![CDATA[<h2 id="Java集合"><a href="#Java集合" class="headerlink" title="Java集合"></a>Java集合</h2><p>本文介绍Java集合的数据结构，与简单测试。为后续学习算法打基础。</p>
-<span id="more"></span>
-
-<h3 id="List"><a href="#List" class="headerlink" title="List"></a>List</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> java.util.ArrayList;</span><br><span class="line"><span class="keyword">import</span> java.util.List;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Test</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">        List&lt;String&gt; list = <span class="keyword">new</span> <span class="title class_">ArrayList</span>&lt;String&gt;();</span><br><span class="line">        list.add(<span class="string">&quot;apple&quot;</span>); <span class="comment">// size=1</span></span><br><span class="line">        list.add(<span class="string">&quot;pear&quot;</span>); <span class="comment">// size=2</span></span><br><span class="line">        list.add(<span class="string">&quot;apple&quot;</span>); <span class="comment">// 允许重复添加元素，size=3</span></span><br><span class="line">        System.out.println(list.size());</span><br><span class="line">        list.remove(<span class="number">1</span>);<span class="comment">//删除pear</span></span><br><span class="line">        System.out.println(list.size());</span><br><span class="line">        System.out.println(list.get(<span class="number">1</span>));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">3</span><br><span class="line">2</span><br><span class="line">apple</span><br></pre></td></tr></table></figure>
-
-<hr>
-<p>List是一种顺序列表接口常用方法：</p>
-<ul>
-<li>在末尾添加一个元素：boolean add(E e)</li>
-<li>在指定索引添加一个元素：boolean add(int index, E e)</li>
-<li>删除指定索引的元素：E remove(int index)</li>
-<li>删除某个元素：boolean remove(Object e)</li>
-<li>获取指定索引的元素：E get(int index)</li>
-<li>获取链表大小（包含元素的个数）：int size()</li>
-</ul>
-<h3 id="Map"><a href="#Map" class="headerlink" title="Map"></a>Map</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> java.util.HashMap;</span><br><span class="line"><span class="keyword">import</span> java.util.Map;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Test</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">        Map&lt;String, String&gt; map = <span class="keyword">new</span> <span class="title class_">HashMap</span>&lt;&gt;();</span><br><span class="line"></span><br><span class="line">        map.put(<span class="string">&quot;s&quot;</span>,<span class="string">&quot;bbbbb&quot;</span>);</span><br><span class="line">        map.put(<span class="string">&quot;a&quot;</span>,<span class="string">&quot;aaaaa&quot;</span>);</span><br><span class="line">        System.out.println(map.get(<span class="string">&quot;s&quot;</span>));<span class="comment">//获取数据</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">for</span> (String key : map.keySet())&#123;    <span class="comment">//遍历map</span></span><br><span class="line">            System.out.println(map.get(key));</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">bbbbb</span><br><span class="line">aaaaa</span><br><span class="line">bbbbb</span><br></pre></td></tr></table></figure>
-<hr>
-<h3 id="Properties"><a href="#Properties" class="headerlink" title="Properties"></a>Properties</h3><p>Java默认配置文件以.properties为扩展名，每行以key&#x3D;value表示。java内置Properties读取配置文件非常简单。</p>
-<p>典型配置文件：</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># setting.properties</span></span><br><span class="line">last_open_file=1.txt</span><br><span class="line">auto_save_interval=60</span><br></pre></td></tr></table></figure>
-
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> java.io.FileNotFoundException;</span><br><span class="line"><span class="keyword">import</span> java.util.Properties;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Test</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> FileNotFoundException,Exception&#123;</span><br><span class="line"></span><br><span class="line">        <span class="type">String</span> <span class="variable">f</span> <span class="operator">=</span> <span class="string">&quot;配置文件&quot;</span>;</span><br><span class="line">        <span class="type">Properties</span> <span class="variable">props</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Properties</span>();</span><br><span class="line">        props.load(<span class="keyword">new</span> <span class="title class_">java</span>.io.FileInputStream(f));</span><br><span class="line"></span><br><span class="line">        <span class="type">String</span> <span class="variable">filepath</span> <span class="operator">=</span> props.getProperty(<span class="string">&quot;last_open_file&quot;</span>);</span><br><span class="line">        <span class="type">String</span> <span class="variable">interval</span> <span class="operator">=</span> props.getProperty(<span class="string">&quot;auto_save_interval&quot;</span>, <span class="string">&quot;120&quot;</span>);<span class="comment">//如果没有值，赋予默认值</span></span><br><span class="line"></span><br><span class="line">        System.out.println(filepath);</span><br><span class="line">        System.out.println(interval);</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">1.txt</span><br><span class="line">60</span><br></pre></td></tr></table></figure>
-
-<h3 id="Set"><a href="#Set" class="headerlink" title="Set"></a>Set</h3><p>只需要存储不重复的key，并不需要存储映射的value，那么就可以使用Set。</p>
-<h3 id="Queue"><a href="#Queue" class="headerlink" title="Queue"></a>Queue</h3><p>队列（Queue）是一种经常使用的集合。Queue实际上是实现了一个先进先出（FIFO：First In First Out）的有序表。它和List的区别在于，List可以在任意位置添加和删除元素，而Queue只有两个操作：</p>
-<ul>
-<li>把元素添加到队列末尾；</li>
-<li>从队列头部取出元素。</li>
-</ul>
-<p>队列接口Queue定义了以下几个方法：</p>
-<ul>
-<li>int size()：获取队列长度；</li>
-<li>boolean add(E)&#x2F;boolean offer(E)：添加元素到队尾；</li>
-<li>E remove()&#x2F;E poll()：获取队首元素并从队列中删除；</li>
-<li>E element()&#x2F;E peek()：获取队首元素但并不从队列中删除。</li>
-</ul>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.io.FileNotFoundException;</span><br><span class="line"><span class="keyword">import</span> java.util.*;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Test</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> FileNotFoundException,Exception&#123;</span><br><span class="line"></span><br><span class="line">        Queue&lt;String&gt; q = <span class="keyword">new</span> <span class="title class_">LinkedList</span>&lt;&gt;();</span><br><span class="line">        q.offer(<span class="string">&quot;aaaaaaa&quot;</span>);</span><br><span class="line">        q.offer(<span class="string">&quot;bbbbbbb&quot;</span>);</span><br><span class="line">        q.offer(<span class="string">&quot;ccccccc&quot;</span>);</span><br><span class="line"></span><br><span class="line">        System.out.println(q.peek());<span class="comment">//获取首位数据，不删除</span></span><br><span class="line">        System.out.println(q.peek());</span><br><span class="line">        System.out.println(q.peek());</span><br><span class="line">        System.out.println(<span class="string">&quot;-------------&quot;</span>);</span><br><span class="line">        System.out.println(q.poll());<span class="comment">//获取首位数据，并删除</span></span><br><span class="line">        System.out.println(q.poll());</span><br><span class="line">        System.out.println(q.poll());</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">aaaaaaa</span><br><span class="line">aaaaaaa</span><br><span class="line">aaaaaaa</span><br><span class="line">-------------</span><br><span class="line">aaaaaaa</span><br><span class="line">bbbbbbb</span><br><span class="line">ccccccc</span><br></pre></td></tr></table></figure>
-
-<h3 id="Deque"><a href="#Deque" class="headerlink" title="Deque"></a>Deque</h3><p>两头都出，这种队列叫双端队列（Double Ended Queue），学名Deque。<br>Java集合提供了接口Deque来实现一个双端队列，它的功能是：</p>
-<ul>
-<li>既可以添加到队尾，也可以添加到队首；</li>
-<li>既可以从队首获取，又可以从队尾获取。</li>
-</ul>
-<p>用处：Deque当Stack使用。</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.io.FileNotFoundException;</span><br><span class="line"><span class="keyword">import</span> java.util.*;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Test</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> FileNotFoundException,Exception&#123;</span><br><span class="line"></span><br><span class="line">        Deque&lt;String&gt; q = <span class="keyword">new</span> <span class="title class_">LinkedList</span>&lt;&gt;();</span><br><span class="line">        q.offerLast(<span class="string">&quot;aaaaaaa&quot;</span>);</span><br><span class="line">        q.offerLast(<span class="string">&quot;bbbbbbb&quot;</span>);</span><br><span class="line">        q.offerLast(<span class="string">&quot;ccccccc&quot;</span>);</span><br><span class="line"></span><br><span class="line">        System.out.println(q.peekLast());<span class="comment">//获取末位数据，不删除</span></span><br><span class="line">        System.out.println(q.peekLast());</span><br><span class="line">        System.out.println(q.peekLast());</span><br><span class="line">        System.out.println(<span class="string">&quot;-------------&quot;</span>);</span><br><span class="line">        System.out.println(q.pollLast());<span class="comment">//获取末位数据，并删除</span></span><br><span class="line">        System.out.println(q.pollLast());</span><br><span class="line">        System.out.println(q.pollLast());</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">ccccccc</span><br><span class="line">ccccccc</span><br><span class="line">ccccccc</span><br><span class="line">-------------</span><br><span class="line">ccccccc</span><br><span class="line">bbbbbbb</span><br><span class="line">aaaaaaa</span><br></pre></td></tr></table></figure>
-
-]]></content>
-      <categories>
-        <category>JAVA基础</category>
-      </categories>
-      <tags>
-        <tag>算法</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>Java反射</title>
     <url>/2023/02/19/Java%E5%8F%8D%E5%B0%84/</url>
     <content><![CDATA[<h2 id="java反射"><a href="#java反射" class="headerlink" title="java反射"></a>java反射</h2><p>之前学过反射，半知半解，今天重新学习一下Java反射机制，以及能做的事情。</p>
@@ -428,6 +361,73 @@
 ]]></content>
       <categories>
         <category>OJ</category>
+      </categories>
+      <tags>
+        <tag>算法</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Java集合</title>
+    <url>/2023/02/13/Java%E9%9B%86%E5%90%88/</url>
+    <content><![CDATA[<h2 id="Java集合"><a href="#Java集合" class="headerlink" title="Java集合"></a>Java集合</h2><p>本文介绍Java集合的数据结构，与简单测试。为后续学习算法打基础。</p>
+<span id="more"></span>
+
+<h3 id="List"><a href="#List" class="headerlink" title="List"></a>List</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> java.util.ArrayList;</span><br><span class="line"><span class="keyword">import</span> java.util.List;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Test</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">        List&lt;String&gt; list = <span class="keyword">new</span> <span class="title class_">ArrayList</span>&lt;String&gt;();</span><br><span class="line">        list.add(<span class="string">&quot;apple&quot;</span>); <span class="comment">// size=1</span></span><br><span class="line">        list.add(<span class="string">&quot;pear&quot;</span>); <span class="comment">// size=2</span></span><br><span class="line">        list.add(<span class="string">&quot;apple&quot;</span>); <span class="comment">// 允许重复添加元素，size=3</span></span><br><span class="line">        System.out.println(list.size());</span><br><span class="line">        list.remove(<span class="number">1</span>);<span class="comment">//删除pear</span></span><br><span class="line">        System.out.println(list.size());</span><br><span class="line">        System.out.println(list.get(<span class="number">1</span>));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">3</span><br><span class="line">2</span><br><span class="line">apple</span><br></pre></td></tr></table></figure>
+
+<hr>
+<p>List是一种顺序列表接口常用方法：</p>
+<ul>
+<li>在末尾添加一个元素：boolean add(E e)</li>
+<li>在指定索引添加一个元素：boolean add(int index, E e)</li>
+<li>删除指定索引的元素：E remove(int index)</li>
+<li>删除某个元素：boolean remove(Object e)</li>
+<li>获取指定索引的元素：E get(int index)</li>
+<li>获取链表大小（包含元素的个数）：int size()</li>
+</ul>
+<h3 id="Map"><a href="#Map" class="headerlink" title="Map"></a>Map</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> java.util.HashMap;</span><br><span class="line"><span class="keyword">import</span> java.util.Map;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Test</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">        Map&lt;String, String&gt; map = <span class="keyword">new</span> <span class="title class_">HashMap</span>&lt;&gt;();</span><br><span class="line"></span><br><span class="line">        map.put(<span class="string">&quot;s&quot;</span>,<span class="string">&quot;bbbbb&quot;</span>);</span><br><span class="line">        map.put(<span class="string">&quot;a&quot;</span>,<span class="string">&quot;aaaaa&quot;</span>);</span><br><span class="line">        System.out.println(map.get(<span class="string">&quot;s&quot;</span>));<span class="comment">//获取数据</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">for</span> (String key : map.keySet())&#123;    <span class="comment">//遍历map</span></span><br><span class="line">            System.out.println(map.get(key));</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">bbbbb</span><br><span class="line">aaaaa</span><br><span class="line">bbbbb</span><br></pre></td></tr></table></figure>
+<hr>
+<h3 id="Properties"><a href="#Properties" class="headerlink" title="Properties"></a>Properties</h3><p>Java默认配置文件以.properties为扩展名，每行以key&#x3D;value表示。java内置Properties读取配置文件非常简单。</p>
+<p>典型配置文件：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># setting.properties</span></span><br><span class="line">last_open_file=1.txt</span><br><span class="line">auto_save_interval=60</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> java.io.FileNotFoundException;</span><br><span class="line"><span class="keyword">import</span> java.util.Properties;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Test</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> FileNotFoundException,Exception&#123;</span><br><span class="line"></span><br><span class="line">        <span class="type">String</span> <span class="variable">f</span> <span class="operator">=</span> <span class="string">&quot;配置文件&quot;</span>;</span><br><span class="line">        <span class="type">Properties</span> <span class="variable">props</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Properties</span>();</span><br><span class="line">        props.load(<span class="keyword">new</span> <span class="title class_">java</span>.io.FileInputStream(f));</span><br><span class="line"></span><br><span class="line">        <span class="type">String</span> <span class="variable">filepath</span> <span class="operator">=</span> props.getProperty(<span class="string">&quot;last_open_file&quot;</span>);</span><br><span class="line">        <span class="type">String</span> <span class="variable">interval</span> <span class="operator">=</span> props.getProperty(<span class="string">&quot;auto_save_interval&quot;</span>, <span class="string">&quot;120&quot;</span>);<span class="comment">//如果没有值，赋予默认值</span></span><br><span class="line"></span><br><span class="line">        System.out.println(filepath);</span><br><span class="line">        System.out.println(interval);</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">1.txt</span><br><span class="line">60</span><br></pre></td></tr></table></figure>
+
+<h3 id="Set"><a href="#Set" class="headerlink" title="Set"></a>Set</h3><p>只需要存储不重复的key，并不需要存储映射的value，那么就可以使用Set。</p>
+<h3 id="Queue"><a href="#Queue" class="headerlink" title="Queue"></a>Queue</h3><p>队列（Queue）是一种经常使用的集合。Queue实际上是实现了一个先进先出（FIFO：First In First Out）的有序表。它和List的区别在于，List可以在任意位置添加和删除元素，而Queue只有两个操作：</p>
+<ul>
+<li>把元素添加到队列末尾；</li>
+<li>从队列头部取出元素。</li>
+</ul>
+<p>队列接口Queue定义了以下几个方法：</p>
+<ul>
+<li>int size()：获取队列长度；</li>
+<li>boolean add(E)&#x2F;boolean offer(E)：添加元素到队尾；</li>
+<li>E remove()&#x2F;E poll()：获取队首元素并从队列中删除；</li>
+<li>E element()&#x2F;E peek()：获取队首元素但并不从队列中删除。</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.io.FileNotFoundException;</span><br><span class="line"><span class="keyword">import</span> java.util.*;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Test</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> FileNotFoundException,Exception&#123;</span><br><span class="line"></span><br><span class="line">        Queue&lt;String&gt; q = <span class="keyword">new</span> <span class="title class_">LinkedList</span>&lt;&gt;();</span><br><span class="line">        q.offer(<span class="string">&quot;aaaaaaa&quot;</span>);</span><br><span class="line">        q.offer(<span class="string">&quot;bbbbbbb&quot;</span>);</span><br><span class="line">        q.offer(<span class="string">&quot;ccccccc&quot;</span>);</span><br><span class="line"></span><br><span class="line">        System.out.println(q.peek());<span class="comment">//获取首位数据，不删除</span></span><br><span class="line">        System.out.println(q.peek());</span><br><span class="line">        System.out.println(q.peek());</span><br><span class="line">        System.out.println(<span class="string">&quot;-------------&quot;</span>);</span><br><span class="line">        System.out.println(q.poll());<span class="comment">//获取首位数据，并删除</span></span><br><span class="line">        System.out.println(q.poll());</span><br><span class="line">        System.out.println(q.poll());</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">aaaaaaa</span><br><span class="line">aaaaaaa</span><br><span class="line">aaaaaaa</span><br><span class="line">-------------</span><br><span class="line">aaaaaaa</span><br><span class="line">bbbbbbb</span><br><span class="line">ccccccc</span><br></pre></td></tr></table></figure>
+
+<h3 id="Deque"><a href="#Deque" class="headerlink" title="Deque"></a>Deque</h3><p>两头都出，这种队列叫双端队列（Double Ended Queue），学名Deque。<br>Java集合提供了接口Deque来实现一个双端队列，它的功能是：</p>
+<ul>
+<li>既可以添加到队尾，也可以添加到队首；</li>
+<li>既可以从队首获取，又可以从队尾获取。</li>
+</ul>
+<p>用处：Deque当Stack使用。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.io.FileNotFoundException;</span><br><span class="line"><span class="keyword">import</span> java.util.*;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Test</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> FileNotFoundException,Exception&#123;</span><br><span class="line"></span><br><span class="line">        Deque&lt;String&gt; q = <span class="keyword">new</span> <span class="title class_">LinkedList</span>&lt;&gt;();</span><br><span class="line">        q.offerLast(<span class="string">&quot;aaaaaaa&quot;</span>);</span><br><span class="line">        q.offerLast(<span class="string">&quot;bbbbbbb&quot;</span>);</span><br><span class="line">        q.offerLast(<span class="string">&quot;ccccccc&quot;</span>);</span><br><span class="line"></span><br><span class="line">        System.out.println(q.peekLast());<span class="comment">//获取末位数据，不删除</span></span><br><span class="line">        System.out.println(q.peekLast());</span><br><span class="line">        System.out.println(q.peekLast());</span><br><span class="line">        System.out.println(<span class="string">&quot;-------------&quot;</span>);</span><br><span class="line">        System.out.println(q.pollLast());<span class="comment">//获取末位数据，并删除</span></span><br><span class="line">        System.out.println(q.pollLast());</span><br><span class="line">        System.out.println(q.pollLast());</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">ccccccc</span><br><span class="line">ccccccc</span><br><span class="line">ccccccc</span><br><span class="line">-------------</span><br><span class="line">ccccccc</span><br><span class="line">bbbbbbb</span><br><span class="line">aaaaaaa</span><br></pre></td></tr></table></figure>
+
+]]></content>
+      <categories>
+        <category>JAVA基础</category>
       </categories>
       <tags>
         <tag>算法</tag>
