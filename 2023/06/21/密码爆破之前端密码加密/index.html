@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"f19t.github.io.git","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":"mac"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="密码爆破之前端密码加密在做漏洞挖掘的时候，我们肯定遇到过，我们想去爆破用户名密码，但是使用Burp抓包发现密码加密了，我们准备的字典无法直接进行使用。本篇文件我们学习一下密码前端加密的情况下我们如何进行爆破。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="密码爆破之前端密码加密">
+<meta property="og:url" content="https://f19t.github.io.git/2023/06/21/%E5%AF%86%E7%A0%81%E7%88%86%E7%A0%B4%E4%B9%8B%E5%89%8D%E7%AB%AF%E5%AF%86%E7%A0%81%E5%8A%A0%E5%AF%86/index.html">
+<meta property="og:site_name" content="个人博客">
+<meta property="og:description" content="密码爆破之前端密码加密在做漏洞挖掘的时候，我们肯定遇到过，我们想去爆破用户名密码，但是使用Burp抓包发现密码加密了，我们准备的字典无法直接进行使用。本篇文件我们学习一下密码前端加密的情况下我们如何进行爆破。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://f19t.github.io.git/2023/06/21/%E5%AF%86%E7%A0%81%E7%88%86%E7%A0%B4%E4%B9%8B%E5%89%8D%E7%AB%AF%E5%AF%86%E7%A0%81%E5%8A%A0%E5%AF%86/16873295775305.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/06/21/%E5%AF%86%E7%A0%81%E7%88%86%E7%A0%B4%E4%B9%8B%E5%89%8D%E7%AB%AF%E5%AF%86%E7%A0%81%E5%8A%A0%E5%AF%86/16873284988043.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/06/21/%E5%AF%86%E7%A0%81%E7%88%86%E7%A0%B4%E4%B9%8B%E5%89%8D%E7%AB%AF%E5%AF%86%E7%A0%81%E5%8A%A0%E5%AF%86/16873297743749.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/06/21/%E5%AF%86%E7%A0%81%E7%88%86%E7%A0%B4%E4%B9%8B%E5%89%8D%E7%AB%AF%E5%AF%86%E7%A0%81%E5%8A%A0%E5%AF%86/16873307712775.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/06/21/%E5%AF%86%E7%A0%81%E7%88%86%E7%A0%B4%E4%B9%8B%E5%89%8D%E7%AB%AF%E5%AF%86%E7%A0%81%E5%8A%A0%E5%AF%86/16873311605105.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/06/21/%E5%AF%86%E7%A0%81%E7%88%86%E7%A0%B4%E4%B9%8B%E5%89%8D%E7%AB%AF%E5%AF%86%E7%A0%81%E5%8A%A0%E5%AF%86/16873316028090.jpg">
+<meta property="article:published_time" content="2023-06-21T07:22:49.000Z">
+<meta property="article:modified_time" content="2023-06-21T07:29:22.467Z">
+<meta property="article:author" content="f19t">
+<meta property="article:tag" content="js">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://f19t.github.io.git/2023/06/21/%E5%AF%86%E7%A0%81%E7%88%86%E7%A0%B4%E4%B9%8B%E5%89%8D%E7%AB%AF%E5%AF%86%E7%A0%81%E5%8A%A0%E5%AF%86/16873295775305.jpg">
+
+<link rel="canonical" href="https://f19t.github.io.git/2023/06/21/%E5%AF%86%E7%A0%81%E7%88%86%E7%A0%B4%E4%B9%8B%E5%89%8D%E7%AB%AF%E5%AF%86%E7%A0%81%E5%8A%A0%E5%AF%86/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>密码爆破之前端密码加密 | 个人博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">个人博客</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://f19t.github.io.git/2023/06/21/%E5%AF%86%E7%A0%81%E7%88%86%E7%A0%B4%E4%B9%8B%E5%89%8D%E7%AB%AF%E5%AF%86%E7%A0%81%E5%8A%A0%E5%AF%86/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="f19t">
+      <meta itemprop="description" content="个人学习的一些记录。">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="个人博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          密码爆破之前端密码加密
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2023-06-21 15:22:49 / 修改时间：15:29:22" itemprop="dateCreated datePublished" datetime="2023-06-21T15:22:49+08:00">2023-06-21</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/" itemprop="url" rel="index"><span itemprop="name">渗透测试</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="密码爆破之前端密码加密"><a href="#密码爆破之前端密码加密" class="headerlink" title="密码爆破之前端密码加密"></a>密码爆破之前端密码加密</h2><p>在做漏洞挖掘的时候，我们肯定遇到过，我们想去爆破用户名密码，但是使用Burp抓包发现密码加密了，我们准备的字典无法直接进行使用。本篇文件我们学习一下密码前端加密的情况下我们如何进行爆破。</p>
+<span id="more"></span>
+
+<h2 id="准备知识"><a href="#准备知识" class="headerlink" title="准备知识"></a>准备知识</h2><h3 id="js相关知识"><a href="#js相关知识" class="headerlink" title="js相关知识"></a>js相关知识</h3><h4 id="变量的相关操作"><a href="#变量的相关操作" class="headerlink" title="变量的相关操作"></a>变量的相关操作</h4><p>比如我们有这么一段html代码，我们以下面的例子使用js去获取这个变量，设置值、修改值</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">input</span> <span class="attr">id</span>=<span class="string">&quot;login_password&quot;</span> <span class="attr">autocomplete</span>=<span class="string">&quot;off&quot;</span> <span class="attr">name</span>=<span class="string">&quot;login_password&quot;</span> <span class="attr">type</span>=<span class="string">&quot;password&quot;</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<h5 id="获取变量"><a href="#获取变量" class="headerlink" title="获取变量"></a>获取变量</h5><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> loginPasswordElement = <span class="variable language_">document</span>.<span class="title function_">getElementById</span>(<span class="string">&#x27;login_password&#x27;</span>);</span><br></pre></td></tr></table></figure>
+
+<p>这里的<strong>login_password</strong> 是id。</p>
+<h5 id="设置值"><a href="#设置值" class="headerlink" title="设置值"></a>设置值</h5><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">loginPasswordElement.<span class="property">value</span> = <span class="string">&#x27;admin&#x27;</span>; </span><br></pre></td></tr></table></figure>
+<h5 id="获取值"><a href="#获取值" class="headerlink" title="获取值"></a>获取值</h5><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">loginPasswordElement.<span class="property">value</span>;</span><br></pre></td></tr></table></figure>
+
+<h3 id="浏览器调试相关"><a href="#浏览器调试相关" class="headerlink" title="浏览器调试相关"></a>浏览器调试相关</h3><h4 id="console-log"><a href="#console-log" class="headerlink" title="console.log"></a>console.log</h4><p>console.log()是JavaScript中的一个函数，它被广泛用于打印信息到浏览器的控制台，其中可以打印变量值，函数内容等。<br>比如打印函数内容：<br><img src="/2023/06/21/%E5%AF%86%E7%A0%81%E7%88%86%E7%A0%B4%E4%B9%8B%E5%89%8D%E7%AB%AF%E5%AF%86%E7%A0%81%E5%8A%A0%E5%AF%86/16873295775305.jpg"><br>我们点击箭头的位置，我们可以将跳转到源代码函数的位置。</p>
+<h4 id="调用js生成加密之后的密码"><a href="#调用js生成加密之后的密码" class="headerlink" title="调用js生成加密之后的密码"></a>调用js生成加密之后的密码</h4><p>这里我们使用chrome浏览器进行前端调试工作。首先比如我们发现一个网站存在登录，我们输入<em>admin&#x2F;123456</em>进行登录，发现burp抓包如下：<br><img src="/2023/06/21/%E5%AF%86%E7%A0%81%E7%88%86%E7%A0%B4%E4%B9%8B%E5%89%8D%E7%AB%AF%E5%AF%86%E7%A0%81%E5%8A%A0%E5%AF%86/16873284988043.jpg"><br>这种情况就是前端js将密码进行加密之后进行的提交。</p>
+<hr>
+<p>前端加密分析最主要的是要搞懂密码在传递的过程当中被哪些函数处理过，也就是我们要搞明白用户名密码提交的运行过程和逻辑。<br><img src="/2023/06/21/%E5%AF%86%E7%A0%81%E7%88%86%E7%A0%B4%E4%B9%8B%E5%89%8D%E7%AB%AF%E5%AF%86%E7%A0%81%E5%8A%A0%E5%AF%86/16873297743749.jpg"><br>经过分析，这个例子密码的加密为这个关键代码，他做了两个事情</p>
+<ul>
+<li>1、加密#login_password</li>
+<li>2、将#login_password的值设置为加密之后的</li>
+</ul>
+<p>所以我们调用这个关键代码并获取值，可以写成：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> us = <span class="title class_">CryptoJS</span>.<span class="property">enc</span>.<span class="property">Utf8</span>.<span class="title function_">parse</span>(<span class="string">&#x27;123456&#x27;</span>);</span><br><span class="line"><span class="keyword">var</span> encrypted = <span class="title class_">CryptoJS</span>.<span class="property">DES</span>.<span class="title function_">encrypt</span>(us, _SecuritySeed);</span><br><span class="line">$(<span class="string">&quot;#login_password&quot;</span>).<span class="title function_">val</span>(encrypted);</span><br><span class="line"><span class="keyword">var</span> loginPasswordElement = <span class="variable language_">document</span>.<span class="title function_">getElementById</span>(<span class="string">&#x27;login_password&#x27;</span>);</span><br><span class="line">loginPasswordElement.<span class="property">value</span>;</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/06/21/%E5%AF%86%E7%A0%81%E7%88%86%E7%A0%B4%E4%B9%8B%E5%89%8D%E7%AB%AF%E5%AF%86%E7%A0%81%E5%8A%A0%E5%AF%86/16873307712775.jpg"><br>密文我们已经生成了，这里我们发现每次生成的密码是不一样的，因为存在_SecuritySeed这个加密种子，并且每次登录之后，加密种子会更新，但是不用担心，只要我们按照逻辑，正确调用加密，并且正确提交用户名密码和其他参数，是没有问题的。<br><img src="/2023/06/21/%E5%AF%86%E7%A0%81%E7%88%86%E7%A0%B4%E4%B9%8B%E5%89%8D%E7%AB%AF%E5%AF%86%E7%A0%81%E5%8A%A0%E5%AF%86/16873311605105.jpg"></p>
+<h3 id="程序调用"><a href="#程序调用" class="headerlink" title="程序调用"></a>程序调用</h3><p>我们也可以非常方便的使用selenium去执行js代码并获取返回结果，下面是一个简单例子</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> selenium <span class="keyword">import</span> webdriver</span><br><span class="line"><span class="keyword">from</span> selenium.webdriver.chrome.options <span class="keyword">import</span> Options</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">chrome_options = Options()</span><br><span class="line">chrome_options.add_argument(<span class="string">&quot;--ignore-certificate-errors&quot;</span>)</span><br><span class="line">chrome_options.add_argument(<span class="string">&quot;--proxy-server=http://127.0.0.1:8080&quot;</span>)</span><br><span class="line">driver = webdriver.Chrome()  <span class="comment"># 或者 webdriver.Chrome()</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">driver = webdriver.Chrome(options=chrome_options)</span><br><span class="line">driver.get(<span class="string">&#x27;url&#x27;</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span> (<span class="number">0</span>,<span class="number">10</span>):</span><br><span class="line">    <span class="built_in">exec</span>=<span class="string">&quot;&quot;&quot;var us = CryptoJS.enc.Utf8.parse(&#x27;123456&#x27;);</span></span><br><span class="line"><span class="string">    var encrypted = CryptoJS.DES.encrypt(us, _SecuritySeed);</span></span><br><span class="line"><span class="string">    $(&quot;#login_password&quot;).val(encrypted);</span></span><br><span class="line"><span class="string">    var loginPasswordElement = document.getElementById(&#x27;login_password&#x27;);</span></span><br><span class="line"><span class="string">    return loginPasswordElement.value;&quot;&quot;&quot;</span></span><br><span class="line">    result = driver.execute_script(<span class="built_in">exec</span>)</span><br><span class="line">    <span class="built_in">print</span>(result)</span><br><span class="line"></span><br><span class="line">driver.quit()</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/06/21/%E5%AF%86%E7%A0%81%E7%88%86%E7%A0%B4%E4%B9%8B%E5%89%8D%E7%AB%AF%E5%AF%86%E7%A0%81%E5%8A%A0%E5%AF%86/16873316028090.jpg"></p>
+<p>有了加密的密文之后可以自己写request去提交，但是我觉得最有效率的应该是直接调用代码里面的js去提交吧，因为除了用户名密码，还有其他的参数也有可能会提交。</p>
+<h4 id="tips"><a href="#tips" class="headerlink" title="tips"></a>tips</h4><p>如果网站存在图像验证码，我们也可以使用程序进行ocr识别，并进行爆破，这里推荐使用pytesseract库。下面是简单实例</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">recognize_captcha</span>():</span><br><span class="line">    image = Image.<span class="built_in">open</span>(<span class="string">&#x27;captcha.png&#x27;</span>)</span><br><span class="line">    captcha = pytesseract.image_to_string(image,config=<span class="string">&quot;--psm 6&quot;</span>)</span><br><span class="line">    <span class="keyword">return</span> captcha</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/js/" rel="tag"># js</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2023/06/17/Linux%E8%BF%90%E8%A1%8C%E4%B8%AD%E6%96%87%E4%BB%B6%E5%88%A0%E9%99%A4%E5%90%8E%E7%9A%84%E6%81%A2%E5%A4%8D/" rel="prev" title="Linux运行中文件删除后的恢复">
+      <i class="fa fa-chevron-left"></i> Linux运行中文件删除后的恢复
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AF%86%E7%A0%81%E7%88%86%E7%A0%B4%E4%B9%8B%E5%89%8D%E7%AB%AF%E5%AF%86%E7%A0%81%E5%8A%A0%E5%AF%86"><span class="nav-number">1.</span> <span class="nav-text">密码爆破之前端密码加密</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%87%86%E5%A4%87%E7%9F%A5%E8%AF%86"><span class="nav-number">2.</span> <span class="nav-text">准备知识</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#js%E7%9B%B8%E5%85%B3%E7%9F%A5%E8%AF%86"><span class="nav-number">2.1.</span> <span class="nav-text">js相关知识</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%8F%98%E9%87%8F%E7%9A%84%E7%9B%B8%E5%85%B3%E6%93%8D%E4%BD%9C"><span class="nav-number">2.1.1.</span> <span class="nav-text">变量的相关操作</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#%E8%8E%B7%E5%8F%96%E5%8F%98%E9%87%8F"><span class="nav-number">2.1.1.1.</span> <span class="nav-text">获取变量</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%E8%AE%BE%E7%BD%AE%E5%80%BC"><span class="nav-number">2.1.1.2.</span> <span class="nav-text">设置值</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%E8%8E%B7%E5%8F%96%E5%80%BC"><span class="nav-number">2.1.1.3.</span> <span class="nav-text">获取值</span></a></li></ol></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B5%8F%E8%A7%88%E5%99%A8%E8%B0%83%E8%AF%95%E7%9B%B8%E5%85%B3"><span class="nav-number">2.2.</span> <span class="nav-text">浏览器调试相关</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#console-log"><span class="nav-number">2.2.1.</span> <span class="nav-text">console.log</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%B0%83%E7%94%A8js%E7%94%9F%E6%88%90%E5%8A%A0%E5%AF%86%E4%B9%8B%E5%90%8E%E7%9A%84%E5%AF%86%E7%A0%81"><span class="nav-number">2.2.2.</span> <span class="nav-text">调用js生成加密之后的密码</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%A8%8B%E5%BA%8F%E8%B0%83%E7%94%A8"><span class="nav-number">2.3.</span> <span class="nav-text">程序调用</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#tips"><span class="nav-number">2.3.1.</span> <span class="nav-text">tips</span></a></li></ol></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">f19t</p>
+  <div class="site-description" itemprop="description">个人学习的一些记录。</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">15</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">6</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">7</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        <!--
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">f19t</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+-->
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
