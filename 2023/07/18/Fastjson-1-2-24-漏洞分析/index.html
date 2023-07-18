@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"f19t.github.io.git","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":"mac"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="Fastjson漏洞分析本篇文章以1.2.24版本出现的反序列化漏洞为基础学习Fastjson个版本漏洞，及POC。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Fastjson-1.2.24-漏洞分析">
+<meta property="og:url" content="https://f19t.github.io.git/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/index.html">
+<meta property="og:site_name" content="个人博客">
+<meta property="og:description" content="Fastjson漏洞分析本篇文章以1.2.24版本出现的反序列化漏洞为基础学习Fastjson个版本漏洞，及POC。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://f19t.github.io.git/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896858542472.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896858799997.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896859969420.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896861728003.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896863268072.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896866333755.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896870223769.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896870497228.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896871324643.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896871497525.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896874909324.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896879286779.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896890918673.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896895175473.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896895830585.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896897049953.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896899237213.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896906238790.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896907583340.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896908147010.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896909189252.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896912317400.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896913025872.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896921220367.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896922521486.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896923868423.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896931232147.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896931738681.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896924523381.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896925161839.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896928516061.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896928854357.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896933798646.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896934692149.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896935804295.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896936328770.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896940390080.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896938389555.jpg">
+<meta property="article:published_time" content="2023-07-18T15:38:24.000Z">
+<meta property="article:modified_time" content="2023-07-18T15:40:25.223Z">
+<meta property="article:author" content="f19t">
+<meta property="article:tag" content="JAVASEC">
+<meta property="article:tag" content="fastjson">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://f19t.github.io.git/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896858542472.jpg">
+
+<link rel="canonical" href="https://f19t.github.io.git/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>Fastjson-1.2.24-漏洞分析 | 个人博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">个人博客</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://f19t.github.io.git/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="f19t">
+      <meta itemprop="description" content="个人学习的一些记录。">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="个人博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Fastjson-1.2.24-漏洞分析
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2023-07-18 23:38:24 / 修改时间：23:40:25" itemprop="dateCreated datePublished" datetime="2023-07-18T23:38:24+08:00">2023-07-18</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/" itemprop="url" rel="index"><span itemprop="name">漏洞分析</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="Fastjson漏洞分析"><a href="#Fastjson漏洞分析" class="headerlink" title="Fastjson漏洞分析"></a>Fastjson漏洞分析</h1><p>本篇文章以1.2.24版本出现的反序列化漏洞为基础学习Fastjson个版本漏洞，及POC。</p>
+<span id="more"></span>
+
+<h2 id="环境准备"><a href="#环境准备" class="headerlink" title="环境准备"></a>环境准备</h2><ul>
+<li>java version “1.8.0_152”</li>
+<li>idea 2023.3.3</li>
+<li>FastJson 1.2.24</li>
+</ul>
+<h2 id="漏洞原理1-2-24"><a href="#漏洞原理1-2-24" class="headerlink" title="漏洞原理1.2.24"></a>漏洞原理1.2.24</h2><p>我们先学习一下1.2.24的漏洞原理</p>
+<h3 id="演示demo"><a href="#演示demo" class="headerlink" title="演示demo"></a>演示demo</h3><p>在学习之前我们先写一个测试基类。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> org.fvuln;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * author: f19t</span></span><br><span class="line"><span class="comment"> * Date: 2023/7/18 21:04</span></span><br><span class="line"><span class="comment"> * File: User.java</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.util.HashMap;</span><br><span class="line"><span class="keyword">import</span> java.util.Map;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">User</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="type">boolean</span> <span class="title function_">isB</span><span class="params">()</span> &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;调用isB b&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span> b;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setB</span><span class="params">(<span class="type">boolean</span> b)</span> &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;调用setB b&quot;</span>);</span><br><span class="line">        <span class="built_in">this</span>.b = b;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="type">int</span> <span class="title function_">getAge</span><span class="params">()</span> &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;调用getName age&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span> age;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setAge</span><span class="params">(<span class="type">int</span> age)</span> &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;调用setName age&quot;</span>);</span><br><span class="line">        <span class="built_in">this</span>.age = age;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> Flag <span class="title function_">getFlag</span><span class="params">()</span> &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;调用getName flag&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span> flag;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setFlag</span><span class="params">(Flag flag)</span> &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;调用setName flag&quot;</span>);</span><br><span class="line">        <span class="built_in">this</span>.flag = flag;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> String <span class="title function_">getName</span><span class="params">()</span> &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;调用getName name&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span> name;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setName</span><span class="params">(String name)</span> &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;调用setName name&quot;</span>);</span><br><span class="line">        <span class="built_in">this</span>.name = name;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> String name;</span><br><span class="line">    <span class="keyword">private</span> <span class="type">int</span> age;</span><br><span class="line">    <span class="keyword">private</span> Flag flag;</span><br><span class="line">    <span class="keyword">private</span> <span class="type">boolean</span> b;</span><br><span class="line">    <span class="keyword">private</span> Map&lt;String, String&gt; map;</span><br><span class="line">    <span class="keyword">public</span> <span class="type">int</span> i;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> Map <span class="title function_">getMap</span><span class="params">()</span> &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;调用getMap map&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span> map;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//    public void setMap(Map map) &#123;</span></span><br><span class="line"><span class="comment">//        System.out.println(&quot;调用setMap map&quot;);</span></span><br><span class="line"><span class="comment">//        this.map = map;</span></span><br><span class="line"><span class="comment">//    &#125;</span></span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> String <span class="title function_">toString</span><span class="params">()</span> &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;调用User toString&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="string">&quot;User&#123;&quot;</span> +</span><br><span class="line">                <span class="string">&quot;name=&#x27;&quot;</span> + name + <span class="string">&#x27;\&#x27;&#x27;</span> + <span class="string">&quot;, age=&quot;</span> + age +</span><br><span class="line">                <span class="string">&quot;, flag=&quot;</span> + flag + <span class="string">&quot;, map=&quot;</span> + map + <span class="string">&quot;, i=&quot;</span> + i +</span><br><span class="line">                <span class="string">&#x27;&#125;&#x27;</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">User</span><span class="params">()</span> &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;调用User无参构造&quot;</span>);</span><br><span class="line">        <span class="built_in">this</span>.name = <span class="string">&quot;f19t&quot;</span>;</span><br><span class="line">        <span class="built_in">this</span>.age = <span class="number">8</span>;</span><br><span class="line">        <span class="built_in">this</span>.i = <span class="number">2</span>;</span><br><span class="line">        <span class="built_in">this</span>.map = <span class="keyword">new</span> <span class="title class_">HashMap</span>&lt;String, String&gt;();</span><br><span class="line">        map.put(<span class="string">&quot;1&quot;</span>, <span class="string">&quot;2&quot;</span>);</span><br><span class="line">        <span class="built_in">this</span>.flag = <span class="keyword">new</span> <span class="title class_">Flag</span>();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Flag</span> &#123;</span><br><span class="line">    <span class="keyword">private</span> String flag;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> String <span class="title function_">getFlag</span><span class="params">()</span> &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;调用getName flag类的flag&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span> flag;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setFlag</span><span class="params">(String flag)</span> &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;调用setName flag类的flag&quot;</span>);</span><br><span class="line">        <span class="built_in">this</span>.flag = flag;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">Flag</span><span class="params">()</span> &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;调用flag class无参构造函数&quot;</span>);</span><br><span class="line">        <span class="built_in">this</span>.flag = <span class="string">&quot;flag&#123;123123&#125;&quot;</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>下面是Mian程序，可以根据自己的需要设置断点和设置注释</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> org.fvuln;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> com.alibaba.fastjson.JSON;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> com.sun.org.apache.xalan.internal.xsltc.trax.TemplatesImpl;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * author: f19t</span></span><br><span class="line"><span class="comment"> * Date: 2023/7/17 13:03</span></span><br><span class="line"><span class="comment"> * File: Main.java</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Main</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> ClassNotFoundException &#123;</span><br><span class="line">        <span class="type">User</span> <span class="variable">user</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">User</span>();</span><br><span class="line">        System.out.println(<span class="string">&quot;================&quot;</span>);</span><br><span class="line">        <span class="type">String</span> <span class="variable">serJson</span> <span class="operator">=</span> JSON.toJSONString(user);</span><br><span class="line">        System.out.println(serJson);</span><br><span class="line">        System.out.println(<span class="string">&quot;================&quot;</span>);</span><br><span class="line">        System.out.println(JSON.parse(serJson).getClass());</span><br><span class="line">        System.out.println(<span class="string">&quot;================&quot;</span>);</span><br><span class="line">        System.out.println(JSON.parseObject(serJson).getClass());</span><br><span class="line">        System.out.println(<span class="string">&quot;================&quot;</span>);</span><br><span class="line">        System.out.println(JSON.parseObject(serJson, User.class).getClass());</span><br><span class="line">        System.out.println(<span class="string">&quot;================&quot;</span>);</span><br><span class="line">        <span class="type">String</span> <span class="variable">sertest</span> <span class="operator">=</span> <span class="string">&quot;&#123;\&quot;@type\&quot;:\&quot;org.fvuln.User\&quot;,\&quot;age\&quot;:8,\&quot;b\&quot;:false,\&quot;flag\&quot;:&#123;\&quot;flag\&quot;:\&quot;flag&#123;123123&#125;\&quot;&#125;,\&quot;i\&quot;:2,\&quot;map\&quot;:&#123;\&quot;1\&quot;:\&quot;2\&quot;&#125;,\&quot;name\&quot;:\&quot;f19t\&quot;&#125;&quot;</span>;</span><br><span class="line">        System.out.println(JSON.parse(sertest).getClass());</span><br><span class="line">        System.out.println(<span class="string">&quot;================&quot;</span>);</span><br><span class="line">        System.out.println(JSON.parseObject(sertest).getClass());</span><br><span class="line">        System.out.println(<span class="string">&quot;================&quot;</span>);</span><br><span class="line">        System.out.println(JSON.parseObject(sertest, User.class).getClass());</span><br><span class="line">        System.out.println(<span class="string">&quot;================&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+<h4 id="Fastjson反序列化效果"><a href="#Fastjson反序列化效果" class="headerlink" title="Fastjson反序列化效果"></a>Fastjson反序列化效果</h4><p>这里我们先运行这三行<br><img src="/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896858542472.jpg"><br>运行结果如下：<br><img src="/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896858799997.jpg"><br>我们可以发现parseObject会调用全部get与set方法、<font color=red>parse只会调用全部set方法与部分get方法</font>。</p>
+<p>下图是parseObject方法我们可以看到他是调用了parse，那么接下来我们重点分析一下parse这条调用路径。<br><img src="/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896859969420.jpg"></p>
+<p>把其他代码都注释掉只留下下面两句关键代码，打断点进行分析。</p>
+<p><img src="/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896861728003.jpg"></p>
+<h4 id="Json字符串处理"><a href="#Json字符串处理" class="headerlink" title="Json字符串处理"></a>Json字符串处理</h4><p>第一步、首先parse会调用自己的重载函数。进入重载函数后给关键代码下断点。</p>
+<p><img src="/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896863268072.jpg"></p>
+<p>首先进入到</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">DefaultJSONParser</span> <span class="variable">parser</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">DefaultJSONParser</span>(text, ParserConfig.getGlobalInstance(), features);</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896866333755.jpg"></p>
+<p>这里需要注意：</p>
+<ul>
+<li>this.symbolTable的值为[null, null, null, null, $ref, 其他 @type,091]</li>
+<li>大括号 “{}”: 在Fastjson中，大括号表示一个JSON对象的开始和结束。</li>
+<li>方括号 “[]”: 在Fastjson中，方括号表示一个JSON数组的开始和结束。</li>
+</ul>
+<p>然后进入到</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">Object</span> <span class="variable">value</span> <span class="operator">=</span> parser.parse();</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896870223769.jpg"></p>
+<p>进入到case12<br><img src="/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896870497228.jpg"></p>
+<p>走到关键代码</p>
+<p><img src="/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896871324643.jpg"></p>
+<p>skipWhitespace()是去除回车换行等字符串的函数。<br><img src="/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896871497525.jpg"></p>
+<p>接着走到关键代码</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">key = lexer.scanSymbol(<span class="built_in">this</span>.symbolTable, <span class="string">&#x27;&quot;&#x27;</span>);</span><br></pre></td></tr></table></figure>
+
+<p>接着就是通过双引号去分割取值<br><img src="/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896874909324.jpg"></p>
+<p>这里取出第一个双引号包裹的字符串”@type”<br><img src="/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896879286779.jpg"><br>接着会走到key是”@type”的if分支<br><img src="/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896890918673.jpg"></p>
+<p>这里得到ref为org.fvuln.User<br><img src="/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896895175473.jpg"><br>这里可以看到存在一个mappings一个数组，用来判断是不是<font color=red>白名单</font><br><img src="/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896895830585.jpg"></p>
+<p><font color=red>接着判断是不是[开头的、还判断是不是L开头;结尾的，如果是则缺[1，-1]区间的值进行类加载。</font><br><img src="/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896897049953.jpg"></p>
+<p>因为我们这里都不满足，所以会走到当前线程的的类加载器。并且将我们的class加入到mappings里面。<br><img src="/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896899237213.jpg"></p>
+<h4 id="反序列化处理"><a href="#反序列化处理" class="headerlink" title="反序列化处理"></a>反序列化处理</h4><p>接着会走到生成ObjectDeserializer对象这个位置<br><img src="/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896906238790.jpg"></p>
+<p>先是从derializers获取类加载，如果找不到的话会继续向下走。<br><img src="/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896907583340.jpg"></p>
+<p>最后会通过clazz.getName();获取类名，并将’$’转换成.<br><img src="/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896908147010.jpg"></p>
+<p>接着进行类黑名单校验。<br><img src="/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896909189252.jpg"></p>
+<p>接着会走到createJavaBeanDeserializer</p>
+<p><img src="/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896912317400.jpg"></p>
+<h4 id="JavaBeanInfo-build"><a href="#JavaBeanInfo-build" class="headerlink" title="JavaBeanInfo.build"></a>JavaBeanInfo.build</h4><p>接着会走到build<br><img src="/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896913025872.jpg"></p>
+<p>build是是获取目标类变量名field与函数setter、getter的地方，有些不同点记录在下方：</p>
+<ul>
+<li>Methods获取方式为Method[] methods &#x3D; clazz.getMethods(); 然后通过if判断是否添加到JavaBeanInfo</li>
+<li><font color=red>Field是通过methodName里面的字符串拼接得到的</font></li>
+</ul>
+<h4 id="添加getter与setter的主要三个for循环"><a href="#添加getter与setter的主要三个for循环" class="headerlink" title="添加getter与setter的主要三个for循环"></a>添加getter与setter的主要三个for循环</h4><h5 id="添加setter"><a href="#添加setter" class="headerlink" title="添加setter"></a>添加setter</h5><p><img src="/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896921220367.jpg"></p>
+<p>这里首先获取所有Methods，然后遍历循环这些Methods，然后经过一些if判断，取出了set开头的函数。<br><img src="/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896922521486.jpg"></p>
+<p>这里因为boolean类型的setter函数命令方式为isXxx()，所以is开头的函数也在这个for循环里面。最后将确定的setter与变量名称添加到JavaBeanInfo里面。</p>
+<p><img src="/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896923868423.jpg"></p>
+<h4 id="添加public的变量"><a href="#添加public的变量" class="headerlink" title="添加public的变量"></a>添加public的变量</h4><p>Field[] var31 &#x3D; clazz.getFields();也就是说public的变量可以添加到JavaBeanInfo里面。<br><img src="/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896931232147.jpg"></p>
+<p><img src="/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896931738681.jpg"><br>这个地方没调试，估计是直接反射赋值。</p>
+<h5 id="添加getter"><a href="#添加getter" class="headerlink" title="添加getter"></a>添加getter</h5><p>getter函数的添加是这里的第三个for循环。<br><img src="/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896924523381.jpg"></p>
+<p>这里也是获取所有Methods，然后遍历循环这些Methods，然后经过一些if判断，取出了get开头的函数。</p>
+<p><img src="/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896925161839.jpg"></p>
+<p>不过这里的if判断需要注意：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">methodName.length() &gt;= <span class="number">4</span> &amp;&amp; !Modifier.isStatic(method.getModifiers()) &amp;&amp; methodName.startsWith(<span class="string">&quot;get&quot;</span>) &amp;&amp; Character.isUpperCase(methodName.charAt(<span class="number">3</span>)) &amp;&amp; method.getParameterTypes().length == <span class="number">0</span> &amp;&amp; </span><br><span class="line">(Collection.class.isAssignableFrom(method.getReturnType()) || Map.class.isAssignableFrom(method.getReturnType()) || AtomicBoolean.class == method.getReturnType() || AtomicInteger.class == method.getReturnType() || AtomicLong.class == method.getReturnType())</span><br></pre></td></tr></table></figure>
+
+<p>这里简要分析一下：</p>
+<ul>
+<li>methodName.length() &gt;&#x3D; 4 应该是说geta()多一个字符串就大于4了</li>
+<li>!Modifier.isStatic(method.getModifiers())  不是是静态函数</li>
+<li>Character.isUpperCase(methodName.charAt(3)) 第四个字母要大写</li>
+<li>method.getParameterTypes().length &#x3D;&#x3D; 0 函数没有参数</li>
+<li>getReturnType()是判断是否集成这些某个类</li>
+</ul>
+<p>我们最开始写的map例子就是为了验证这个地方。<br>进入到getter for循环有个坑，就是这个地方。<br><img src="/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896928516061.jpg"></p>
+<p>我们进入getField可以看到。<br><img src="/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896928854357.jpg"></p>
+<p>这个地方的逻辑顺序是先添加setter和public的一些变量，如果fieldList里面存在了与getter一样名称的变量，则不会添加getter，<font color=red>也就是说如果fieldList里面之前被setter和public变量添加过Field。</font></p>
+<p>可以将我们最开始的基类，取消注释setter然后再运行，就会发现没有getter了。</p>
+<p>最后可以获得包含JavaBeanInfo的deserializer了。<br><img src="/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896933798646.jpg"></p>
+<h4 id="反序列化"><a href="#反序列化" class="headerlink" title="反序列化"></a>反序列化</h4><p>接着跟进deserializer.deserialze()。</p>
+<p><img src="/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896934692149.jpg"></p>
+<p>接着会创建对象<br><img src="/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896935804295.jpg"></p>
+<p>然后就进行fieldDeser.setValue(object, fieldValue);设置值了。<br><img src="/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896936328770.jpg"></p>
+<p>value的值通过lexer.scanxxx获取。<br><img src="/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896940390080.jpg"></p>
+<p>设置值的时候就会进行函数调用了。<br><img src="/2023/07/18/Fastjson-1-2-24-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/16896938389555.jpg"></p>
+<h2 id="写在最后"><a href="#写在最后" class="headerlink" title="写在最后"></a>写在最后</h2><p>本篇文章讲了Fastjson1.2.24产生的漏洞原理，下一篇文件讲解各个版本漏洞产生的原因，以及POC和利用Fastjson漏洞的一些技巧。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/JAVASEC/" rel="tag"># JAVASEC</a>
+              <a href="/tags/fastjson/" rel="tag"># fastjson</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2023/07/16/GIT%E6%95%99%E7%A8%8B-%E7%A8%8B%E5%BA%8F%E5%91%98%E7%9A%84%E8%87%AA%E6%88%91%E4%BF%AE%E5%85%BB/" rel="prev" title="GIT教程-程序员的自我修养">
+      <i class="fa fa-chevron-left"></i> GIT教程-程序员的自我修养
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Fastjson%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90"><span class="nav-number">1.</span> <span class="nav-text">Fastjson漏洞分析</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%8E%AF%E5%A2%83%E5%87%86%E5%A4%87"><span class="nav-number">1.1.</span> <span class="nav-text">环境准备</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%BC%8F%E6%B4%9E%E5%8E%9F%E7%90%861-2-24"><span class="nav-number">1.2.</span> <span class="nav-text">漏洞原理1.2.24</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%BC%94%E7%A4%BAdemo"><span class="nav-number">1.2.1.</span> <span class="nav-text">演示demo</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%95%88%E6%9E%9C"><span class="nav-number">1.2.1.1.</span> <span class="nav-text">Fastjson反序列化效果</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Json%E5%AD%97%E7%AC%A6%E4%B8%B2%E5%A4%84%E7%90%86"><span class="nav-number">1.2.1.2.</span> <span class="nav-text">Json字符串处理</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E5%A4%84%E7%90%86"><span class="nav-number">1.2.1.3.</span> <span class="nav-text">反序列化处理</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#JavaBeanInfo-build"><span class="nav-number">1.2.1.4.</span> <span class="nav-text">JavaBeanInfo.build</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%B7%BB%E5%8A%A0getter%E4%B8%8Esetter%E7%9A%84%E4%B8%BB%E8%A6%81%E4%B8%89%E4%B8%AAfor%E5%BE%AA%E7%8E%AF"><span class="nav-number">1.2.1.5.</span> <span class="nav-text">添加getter与setter的主要三个for循环</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#%E6%B7%BB%E5%8A%A0setter"><span class="nav-number">1.2.1.5.1.</span> <span class="nav-text">添加setter</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%B7%BB%E5%8A%A0public%E7%9A%84%E5%8F%98%E9%87%8F"><span class="nav-number">1.2.1.6.</span> <span class="nav-text">添加public的变量</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#%E6%B7%BB%E5%8A%A0getter"><span class="nav-number">1.2.1.6.1.</span> <span class="nav-text">添加getter</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96"><span class="nav-number">1.2.1.7.</span> <span class="nav-text">反序列化</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%86%99%E5%9C%A8%E6%9C%80%E5%90%8E"><span class="nav-number">1.3.</span> <span class="nav-text">写在最后</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">f19t</p>
+  <div class="site-description" itemprop="description">个人学习的一些记录。</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">23</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">7</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">9</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        <!--
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">f19t</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+-->
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
