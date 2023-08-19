@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"f19t.github.io.git","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":"mac"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="猿人学第十题先说一下做这题的感受，就像是我们的目标是翻越这座山，但在翻越这座山的时候会遇见很多座山，翻越一座又来一座，最后通往山顶的时候发现是有捷径可以走的，但是中间过程遇到的山让我受益良多，十分推荐这道题。 1https:&#x2F;&#x2F;match.yuanrenxue.cn&#x2F;match&#x2F;10">
+<meta property="og:type" content="article">
+<meta property="og:title" content="js混淆-猿人学第10题">
+<meta property="og:url" content="https://f19t.github.io.git/2023/08/19/js%E6%B7%B7%E6%B7%86-%E7%8C%BF%E4%BA%BA%E5%AD%A6%E7%AC%AC10%E9%A2%98/index.html">
+<meta property="og:site_name" content="个人博客">
+<meta property="og:description" content="猿人学第十题先说一下做这题的感受，就像是我们的目标是翻越这座山，但在翻越这座山的时候会遇见很多座山，翻越一座又来一座，最后通往山顶的时候发现是有捷径可以走的，但是中间过程遇到的山让我受益良多，十分推荐这道题。 1https:&#x2F;&#x2F;match.yuanrenxue.cn&#x2F;match&#x2F;10">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://f19t.github.io.git/2023/08/19/js%E6%B7%B7%E6%B7%86-%E7%8C%BF%E4%BA%BA%E5%AD%A6%E7%AC%AC10%E9%A2%98/16914774959275.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/08/19/js%E6%B7%B7%E6%B7%86-%E7%8C%BF%E4%BA%BA%E5%AD%A6%E7%AC%AC10%E9%A2%98/16924258447891.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/08/19/js%E6%B7%B7%E6%B7%86-%E7%8C%BF%E4%BA%BA%E5%AD%A6%E7%AC%AC10%E9%A2%98/16924259593232.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/08/19/js%E6%B7%B7%E6%B7%86-%E7%8C%BF%E4%BA%BA%E5%AD%A6%E7%AC%AC10%E9%A2%98/16924260369623.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/08/19/js%E6%B7%B7%E6%B7%86-%E7%8C%BF%E4%BA%BA%E5%AD%A6%E7%AC%AC10%E9%A2%98/16924261267622.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/08/19/js%E6%B7%B7%E6%B7%86-%E7%8C%BF%E4%BA%BA%E5%AD%A6%E7%AC%AC10%E9%A2%98/16924263053412.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/08/19/js%E6%B7%B7%E6%B7%86-%E7%8C%BF%E4%BA%BA%E5%AD%A6%E7%AC%AC10%E9%A2%98/16924265494532.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/08/19/js%E6%B7%B7%E6%B7%86-%E7%8C%BF%E4%BA%BA%E5%AD%A6%E7%AC%AC10%E9%A2%98/16924266377132.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/08/19/js%E6%B7%B7%E6%B7%86-%E7%8C%BF%E4%BA%BA%E5%AD%A6%E7%AC%AC10%E9%A2%98/16924267862870.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/08/19/js%E6%B7%B7%E6%B7%86-%E7%8C%BF%E4%BA%BA%E5%AD%A6%E7%AC%AC10%E9%A2%98/16924268921417.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/08/19/js%E6%B7%B7%E6%B7%86-%E7%8C%BF%E4%BA%BA%E5%AD%A6%E7%AC%AC10%E9%A2%98/16924269107231.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/08/19/js%E6%B7%B7%E6%B7%86-%E7%8C%BF%E4%BA%BA%E5%AD%A6%E7%AC%AC10%E9%A2%98/16924281921309.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/08/19/js%E6%B7%B7%E6%B7%86-%E7%8C%BF%E4%BA%BA%E5%AD%A6%E7%AC%AC10%E9%A2%98/16923422121045.jpg">
+<meta property="article:published_time" content="2023-08-19T07:02:56.000Z">
+<meta property="article:modified_time" content="2023-08-19T07:04:20.506Z">
+<meta property="article:author" content="f19t">
+<meta property="article:tag" content="js">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://f19t.github.io.git/2023/08/19/js%E6%B7%B7%E6%B7%86-%E7%8C%BF%E4%BA%BA%E5%AD%A6%E7%AC%AC10%E9%A2%98/16914774959275.jpg">
+
+<link rel="canonical" href="https://f19t.github.io.git/2023/08/19/js%E6%B7%B7%E6%B7%86-%E7%8C%BF%E4%BA%BA%E5%AD%A6%E7%AC%AC10%E9%A2%98/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>js混淆-猿人学第10题 | 个人博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">个人博客</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://f19t.github.io.git/2023/08/19/js%E6%B7%B7%E6%B7%86-%E7%8C%BF%E4%BA%BA%E5%AD%A6%E7%AC%AC10%E9%A2%98/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="f19t">
+      <meta itemprop="description" content="个人学习的一些记录。">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="个人博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          js混淆-猿人学第10题
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2023-08-19 15:02:56 / 修改时间：15:04:20" itemprop="dateCreated datePublished" datetime="2023-08-19T15:02:56+08:00">2023-08-19</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/JS%E5%AF%B9%E6%8A%97/" itemprop="url" rel="index"><span itemprop="name">JS对抗</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="猿人学第十题"><a href="#猿人学第十题" class="headerlink" title="猿人学第十题"></a>猿人学第十题</h1><p>先说一下做这题的感受，就像是我们的目标是翻越这座山，但在翻越这座山的时候会遇见很多座山，翻越一座又来一座，最后通往山顶的时候发现是有捷径可以走的，但是中间过程遇到的山让我受益良多，十分推荐这道题。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https://match.yuanrenxue.cn/match/10</span><br></pre></td></tr></table></figure>
+<span id="more"></span>
+<hr>
+<h2 id="获取url的流程"><a href="#获取url的流程" class="headerlink" title="获取url的流程"></a>获取url的流程</h2><p>这里简单说一下这道题的思路，我这道题做了三个星期才搞定的，慢慢来。考点是这三个。<br>2023年8月19日</p>
+<ul>
+<li>对极其复杂的 js的阅读能力</li>
+<li>对控制流平坦化的处理能力</li>
+<li>对js中多种动态参数的处理能力</li>
+</ul>
+<hr>
+<p>首先拿到10这个源代码，请求几次，发现只有yuanrenxue_59这个参数是动态的，其他的都是静态的。<br><img src="/2023/08/19/js%E6%B7%B7%E6%B7%86-%E7%8C%BF%E4%BA%BA%E5%AD%A6%E7%AC%AC10%E9%A2%98/16914774959275.jpg"></p>
+<p>这题有很多debugger可以使用油猴脚本进行绕过</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// ==UserScript==</span></span><br><span class="line"><span class="comment">// @name         yrx10-debug</span></span><br><span class="line"><span class="comment">// @namespace    http://tampermonkey.net/</span></span><br><span class="line"><span class="comment">// @version      0.1</span></span><br><span class="line"><span class="comment">// @description  try to take over the world!</span></span><br><span class="line"><span class="comment">// @author       f19t</span></span><br><span class="line"><span class="comment">// @match        https://match.yuanrenxue.cn/match/10</span></span><br><span class="line"><span class="comment">// @grant        none</span></span><br><span class="line"><span class="comment">// @run-at       document-start</span></span><br><span class="line"><span class="comment">// ==/UserScript==</span></span><br><span class="line"></span><br><span class="line">function_hook=<span class="title class_">Function</span>;</span><br><span class="line"><span class="title class_">Function</span>=<span class="keyword">function</span>(<span class="params">a</span>)&#123;</span><br><span class="line">	<span class="keyword">if</span> (a!==<span class="string">&#x27;debugger&#x27;</span>) &#123;<span class="keyword">return</span> <span class="title function_">function_hook</span>(a)&#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="title class_">Function</span>.<span class="property"><span class="keyword">prototype</span></span>.<span class="property">constructor_hook</span>=<span class="title class_">Function</span>.<span class="property"><span class="keyword">prototype</span></span>.<span class="property">constructor</span>;</span><br><span class="line"><span class="title class_">Function</span>.<span class="property"><span class="keyword">prototype</span></span>.<span class="property">constructor</span>=<span class="keyword">function</span>(<span class="params">x</span>)&#123;</span><br><span class="line">    <span class="keyword">if</span>(x!==<span class="string">&quot;debugger&quot;</span>)&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="title class_">Function</span>.<span class="property"><span class="keyword">prototype</span></span>.<span class="title function_">constructor_hook</span>(x)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">eval_hook=<span class="built_in">eval</span>;</span><br><span class="line"><span class="built_in">eval</span>=<span class="keyword">function</span>(<span class="params">a</span>)&#123;</span><br><span class="line">	<span class="keyword">if</span> (a!==<span class="string">&#x27;debugger&#x27;</span>) &#123;</span><br><span class="line">		<span class="keyword">return</span> eval_hook(a)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="built_in">setInterval</span>=<span class="keyword">function</span>(<span class="params"></span>)&#123;&#125;;</span><br><span class="line"><span class="variable language_">console</span>.<span class="property">log_hook</span>=<span class="variable language_">console</span>.<span class="property">log</span>;</span><br></pre></td></tr></table></figure>
+
+
+<p>首先看一下这个html<br><img src="/2023/08/19/js%E6%B7%B7%E6%B7%86-%E7%8C%BF%E4%BA%BA%E5%AD%A6%E7%AC%AC10%E9%A2%98/16924258447891.jpg"></p>
+<p>可以发现他的执行顺序是先执行rs.js、rsnkw2ksph、和匿名函数。<br>我们可以把匿名函数抠出来单独看一下。</p>
+<p><img src="/2023/08/19/js%E6%B7%B7%E6%B7%86-%E7%8C%BF%E4%BA%BA%E5%AD%A6%E7%AC%AC10%E9%A2%98/16924259593232.jpg"><br>可以看到大多数都是函数不会执行的，唯一可以执行的是这里的while，<font color=red>这里考点：对极其复杂的js的阅读能力</font><br><img src="/2023/08/19/js%E6%B7%B7%E6%B7%86-%E7%8C%BF%E4%BA%BA%E5%AD%A6%E7%AC%AC10%E9%A2%98/16924260369623.jpg"></p>
+<p>这个地方的while会调用下面的yuanrenxue_31，为了更好的调试，大家可以把if-else还原成swich，因为他取值是数组下标，数组是不变得。<br><font color=red>这里考点：对控制流平坦化的处理能力。</font><br>其实这里是可以合并这些case的。比如调用yuanrenxue_31(5)<br>然后5这个整体总共访问了 比如case 32 68 56 44 68。期间做了自增自减 没关系，再比如中间又调用了yuanrenxue_31(5) 把他的走过的流程取出来就可以了。有兴趣的可以尝试一下。<br><img src="/2023/08/19/js%E6%B7%B7%E6%B7%86-%E7%8C%BF%E4%BA%BA%E5%AD%A6%E7%AC%AC10%E9%A2%98/16924261267622.jpg"></p>
+<p>跟进到yuanrenxue_31的里面有个最关键的位置，是解密rsnkw2ksph这个文件的，好像自始至终rs.js我是没有用到的。</p>
+<p><img src="/2023/08/19/js%E6%B7%B7%E6%B7%86-%E7%8C%BF%E4%BA%BA%E5%AD%A6%E7%AC%AC10%E9%A2%98/16924263053412.jpg"></p>
+<p>可以写成py代码<br><img src="/2023/08/19/js%E6%B7%B7%E6%B7%86-%E7%8C%BF%E4%BA%BA%E5%AD%A6%E7%AC%AC10%E9%A2%98/16924265494532.jpg"><br>这里得到yuanrenxue_18之后，他是调用了</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="title function_">yuanrenxue_31</span>(<span class="number">78</span>, yuanrenxue_18);</span><br></pre></td></tr></table></figure>
+<p>跟进去会发现他会执行这个.call，也就是eval执行这个字符串，不知道我的表述对不对。<br>我在他执行之前进行了格式化代码和ast注入了代码。<br><img src="/2023/08/19/js%E6%B7%B7%E6%B7%86-%E7%8C%BF%E4%BA%BA%E5%AD%A6%E7%AC%AC10%E9%A2%98/16924266377132.jpg"></p>
+<p>这里的yuanrenxue_62就是我们的yuanrenxue_18，因为<br><img src="/2023/08/19/js%E6%B7%B7%E6%B7%86-%E7%8C%BF%E4%BA%BA%E5%AD%A6%E7%AC%AC10%E9%A2%98/16924267862870.jpg"></p>
+<p>我是注入的这么两段代码<br>第一处<br><img src="/2023/08/19/js%E6%B7%B7%E6%B7%86-%E7%8C%BF%E4%BA%BA%E5%AD%A6%E7%AC%AC10%E9%A2%98/16924268921417.jpg"></p>
+<p>第二处在js文件最后注入<br><img src="/2023/08/19/js%E6%B7%B7%E6%B7%86-%E7%8C%BF%E4%BA%BA%E5%AD%A6%E7%AC%AC10%E9%A2%98/16924269107231.jpg"></p>
+<p>然后使用jsdom去获取bbx的结果就可以了。<font color=red>这里考点：对js中多种动态参数的处理能力</font></p>
+<h3 id="简化流程"><a href="#简化流程" class="headerlink" title="简化流程"></a>简化流程</h3><p>其实做出这道题之后是可以简化流程的，可以获取yuanrenxue_59和rsnkw2ksph用来生成vm代码，获取offset，然后直接使用ast注入代码，使用jsdom直接运行vm代码就可以了。获取数据留念。<br><img src="/2023/08/19/js%E6%B7%B7%E6%B7%86-%E7%8C%BF%E4%BA%BA%E5%AD%A6%E7%AC%AC10%E9%A2%98/16924281921309.jpg"></p>
+<h4 id="纪念"><a href="#纪念" class="headerlink" title="纪念"></a>纪念</h4><p>通过纪念。<br><img src="/2023/08/19/js%E6%B7%B7%E6%B7%86-%E7%8C%BF%E4%BA%BA%E5%AD%A6%E7%AC%AC10%E9%A2%98/16923422121045.jpg"></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/js/" rel="tag"># js</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2023/08/04/js%E6%B7%B7%E6%B7%86-%E7%8C%BF%E4%BA%BA%E5%AD%A6%E7%AC%AC9%E9%A2%98-%E5%8A%A8%E6%80%81cookie2/" rel="prev" title="js混淆-猿人学第9题-动态cookie2">
+      <i class="fa fa-chevron-left"></i> js混淆-猿人学第9题-动态cookie2
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E7%8C%BF%E4%BA%BA%E5%AD%A6%E7%AC%AC%E5%8D%81%E9%A2%98"><span class="nav-number">1.</span> <span class="nav-text">猿人学第十题</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%8E%B7%E5%8F%96url%E7%9A%84%E6%B5%81%E7%A8%8B"><span class="nav-number">1.1.</span> <span class="nav-text">获取url的流程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AE%80%E5%8C%96%E6%B5%81%E7%A8%8B"><span class="nav-number">1.1.1.</span> <span class="nav-text">简化流程</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%BA%AA%E5%BF%B5"><span class="nav-number">1.1.1.1.</span> <span class="nav-text">纪念</span></a></li></ol></li></ol></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">f19t</p>
+  <div class="site-description" itemprop="description">个人学习的一些记录。</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">27</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">7</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        <!--
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">f19t</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+-->
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
