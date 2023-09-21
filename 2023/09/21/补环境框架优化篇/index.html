@@ -20,19 +20,22 @@
     var CONFIG = {"hostname":"f19t.github.io.git","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":"mac"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
   </script>
 
-  <meta name="description" content="有东西被加密了, 请输入密码查看.">
+  <meta name="description" content="补环境框架优化篇之前的补环境框架使用jsdom实现了部分document的功能，但是生成cookie的时间有点慢，需要0.66s，并且之前框架的原型链并不优雅，所以打算使用cheerio全部重写一下框架，优化一下效率。在重写框架之前需要先学习一下基础知识，如jQuery、Object.getOwnProperty等知识。">
 <meta property="og:type" content="article">
 <meta property="og:title" content="补环境框架优化篇">
 <meta property="og:url" content="https://f19t.github.io.git/2023/09/21/%E8%A1%A5%E7%8E%AF%E5%A2%83%E6%A1%86%E6%9E%B6%E4%BC%98%E5%8C%96%E7%AF%87/index.html">
 <meta property="og:site_name" content="个人博客">
-<meta property="og:description" content="有东西被加密了, 请输入密码查看.">
+<meta property="og:description" content="补环境框架优化篇之前的补环境框架使用jsdom实现了部分document的功能，但是生成cookie的时间有点慢，需要0.66s，并且之前框架的原型链并不优雅，所以打算使用cheerio全部重写一下框架，优化一下效率。在重写框架之前需要先学习一下基础知识，如jQuery、Object.getOwnProperty等知识。">
 <meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://f19t.github.io.git/2023/09/21/%E8%A1%A5%E7%8E%AF%E5%A2%83%E6%A1%86%E6%9E%B6%E4%BC%98%E5%8C%96%E7%AF%87/16952811410919.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/09/21/%E8%A1%A5%E7%8E%AF%E5%A2%83%E6%A1%86%E6%9E%B6%E4%BC%98%E5%8C%96%E7%AF%87/16952828466190.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/09/21/%E8%A1%A5%E7%8E%AF%E5%A2%83%E6%A1%86%E6%9E%B6%E4%BC%98%E5%8C%96%E7%AF%87/16952827002988.jpg">
 <meta property="article:published_time" content="2023-09-21T09:16:53.000Z">
-<meta property="article:modified_time" content="2023-09-21T09:21:09.686Z">
+<meta property="article:modified_time" content="2023-09-21T09:40:36.340Z">
 <meta property="article:author" content="f19t">
-<meta property="article:tag" content="self">
 <meta property="article:tag" content="js">
 <meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://f19t.github.io.git/2023/09/21/%E8%A1%A5%E7%8E%AF%E5%A2%83%E6%A1%86%E6%9E%B6%E4%BC%98%E5%8C%96%E7%AF%87/16952811410919.jpg">
 
 <link rel="canonical" href="https://f19t.github.io.git/2023/09/21/%E8%A1%A5%E7%8E%AF%E5%A2%83%E6%A1%86%E6%9E%B6%E4%BC%98%E5%8C%96%E7%AF%87/">
 
@@ -214,7 +217,7 @@
               <span class="post-meta-item-text">发表于</span>
               
 
-              <time title="创建时间：2023-09-21 17:16:53 / 修改时间：17:21:09" itemprop="dateCreated datePublished" datetime="2023-09-21T17:16:53+08:00">2023-09-21</time>
+              <time title="创建时间：2023-09-21 17:16:53 / 修改时间：17:40:36" itemprop="dateCreated datePublished" datetime="2023-09-21T17:16:53+08:00">2023-09-21</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -237,21 +240,14 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <div class="hbe hbe-container" id="hexo-blog-encrypt" data-wpm="抱歉, 这个密码看着不太对, 请再试试." data-whm="抱歉, 这个文章不能被校验, 不过您还是能看看解密后的内容.">
-  <script id="hbeData" type="hbeData" data-hmacdigest="9624277f977089b98ef47d1a313d566280133c5df71ec191a8eaab5680052df2">a4c6b405e362c4ead0ad72d17a52fa534e5c48f67935f31dc76b803e192abd9a68ce7eff6b09d518b5fd12ec8c5281efe09ba81987a999812d31fdc34e749b53dba70099c53e9c9ea896aad769bd649b3151c68b36b0f89e24d09168ae86a5534e77c5fb53a104c92197e6250284d3d8c83ccd4a6240cccaf851887ad1335add94a242e3a14d3e86b3baf7959af544c5016dcd9fa14a0f8b4cc94b5550f39f5f965e09d260d4bebe5c242e90d9f98fa007d87e479f9fdc23f32c3fe7034389338d539d2b70c1323c54ffe5c1c4753552ff713c2e1b5e050060aa01a7934255d3dfd5f93815b58a28d7149d89b5f8f2082f8a89ad54f685157278f69923ad4f8cade66e254b1176c4ac9548c69210ca9df550324dc0b41e3db02dfaec30469ffd5fa2bf17ebc8f66a2092f43dc03bda39bf9342e097898207cc3a9e2b09e47c17e99edfa91aa9f5e81b4c4b0e78fedf03e348b6cfc055e31775a2e2304873e645872eff663a2fc3a2c4d31ecfb016d767218979bc68613679215899ac27065c208106c7344b0d124364900e64a0c7b9bd45a442e806e7c36a766416814bdfc4911f3cea546bf54e2e59fbc2b1d0135d1253b2aa279bace52d1ccb9467723056fa6ff97fbe806934c717f8c23b12c35a6ce1d3cdbd5f5670eac8bdedd5fca5eb8eabfc03d54e31acfcab5d5d9bbaaf95f6e4b99452067651ae7a26489b9f1502570a3f7bf4d39c2abe123c7b16978bad8407bb4847166ad505b9cd2b4fd3cd46e0f9efd175fa3f6a311c169686ab013f53401d9f5fa14bac2ae0667bafa7c0b39ebe81fd2fabacfbffef35e98ee3d2cf4dfeb6645d26e47cb767f96355fdd74c8a6dc47b20aaddda200a8c3b5ef99591d30b99603c66ceb1d24f1785b502be3c473d4f95b8adf2342643a0e6eb7167dfc3e7124763f013a6e2f78df78f8bf378164bb324bd3f3547b9b72042191a486f7d3c94194fffd48f7275d64b7855cf1d2aff5646c75161fe0cce1eb75fd9d3e21726659ddaad46bea4132926a448ce8742e9ee91aaa5f36704a19c017ccabf5bc29a739688a5318e6f6895a3b33fa3b58be5fd69f9f9947669f776e49b1cba2058df7749a51437448d59882eecc2abfe8e0b9641f68b9e75b8cb40e8dfda5949db3f45afdb3470cd7130f70b6f75491950f5c480f9638a816ce8c82608ed403caaebe1de5df750b80d452f3b9ead54fb5e1d915b4a5a83c8ccfccdbd5be8e0fe2129a0af433ef5e284334c7edb5374ab0735c154e880836dee6f7474857c8bed627fc52f8db6375d127dd7fbbfed6768a2998e9dfd34b11903ce47212390898c85e51797020d6f7ccf04e35cb52d75259070743b3acd4c8695a86290b2b672db1fab631ae594f97ac309f7d9e919465136842cf3ce832340cc7c38e5b04e033865c023fb21feeba9a009f3c8ddf879589463c06769f01cc063533f87212fac2762df97b8578ec364071a68086c8e121bcf916110e35b19eced10908ecfff1e35e0a7e8a31e26437ab500188e96aa787dcde694c474ad4fbb4b8f022a21da6b280023b96912e500440685cae26da39262be7f1757a96950a4be9d2edda08f76836bca06f653d7f23b6042df61e2c779a5cd84b25dbdd39eca4b1827ca3ddb86dfccceb34aee1068370949f98bc6f63f6dd66f0f394d74046f8cdfb107ece6a4fbabdee8e1e714abadb0715c9aabadc7f4dfe51d3e415a3692bc78b0d07c9554acabe3b7f5496141ad14e34793a0b9f5471e46991df632bfda915dc45fd7c7d33f4b32c69c5a1ea04a78d19705bb3f00da029102f67ddbcf690a3578cbe2390521dc21fcf7464a0f0bc02a9341f718836996c8740006caf8c717e900c549ce37f3ac58749aab3ae82c5c8129a9a3cdd738189cf97c981373d39651e14901cb8904133d741c23a1f86207f12a9f5ce33e11a37c5bfde87a675bc73859b49dd87ebbe4b765e7cb6a598686dd2bf4a9bc760e0576346c448865b8e81fb64efc9b78e0d41efcac08c4465a6ea8c498652c8f253c4f6c6a973b6e87c0a5a2da12d63989c90cc6c5184d749f792f9ba15acf0bb363</script>
-  <div class="hbe hbe-content">
-    <div class="hbe hbe-input hbe-input-wave">
-      <input class="hbe hbe-input-field hbe-input-field-wave" type="password" id="hbePass">
-      <label class="hbe hbe-input-label hbe-input-label-wave" for="hbePass">
-        <span class="hbe hbe-input-label-content hbe-input-label-content-wave">您好, 这里需要密码.</span>
-      </label>
-      <svg class="hbe hbe-graphic hbe-graphic-wave" width="300%" height="100%" viewBox="0 0 1200 60" preserveAspectRatio="none">
-        <path d="M0,56.5c0,0,298.666,0,399.333,0C448.336,56.5,513.994,46,597,46c77.327,0,135,10.5,200.999,10.5c95.996,0,402.001,0,402.001,0"></path>
-      </svg>
-    </div>
-  </div>
-</div>
-<script data-pjax src="/lib/hbe.js"></script><link href="/css/hbe.style.css" rel="stylesheet" type="text/css">
+        <h1 id="补环境框架优化篇"><a href="#补环境框架优化篇" class="headerlink" title="补环境框架优化篇"></a>补环境框架优化篇</h1><p>之前的补环境框架使用jsdom实现了部分document的功能，但是生成cookie的时间有点慢，需要0.66s，并且之前框架的原型链并不优雅，所以打算使用cheerio全部重写一下框架，优化一下效率。<br>在重写框架之前需要先学习一下基础知识，如jQuery、Object.getOwnProperty等知识。</p>
+<span id="more"></span>
+
+<h2 id="原型链"><a href="#原型链" class="headerlink" title="原型链"></a>原型链</h2><p>为了更像浏览器，原型链统统写的和浏览器一样。<br><img src="/2023/09/21/%E8%A1%A5%E7%8E%AF%E5%A2%83%E6%A1%86%E6%9E%B6%E4%BC%98%E5%8C%96%E7%AF%87/16952811410919.jpg"></p>
+<h2 id="document"><a href="#document" class="headerlink" title="document"></a>document</h2><p>所有和dom增删改查相关的，全部由cheerio实现，全部去除jsdom的依赖。</p>
+<p><img src="/2023/09/21/%E8%A1%A5%E7%8E%AF%E5%A2%83%E6%A1%86%E6%9E%B6%E4%BC%98%E5%8C%96%E7%AF%87/16952828466190.jpg"></p>
+<h2 id="效果"><a href="#效果" class="headerlink" title="效果"></a>效果</h2><p>cheerio官方表示比jsdom快八倍，这里测试发现从0.66s减少到0.33秒了。<br><img src="/2023/09/21/%E8%A1%A5%E7%8E%AF%E5%A2%83%E6%A1%86%E6%9E%B6%E4%BC%98%E5%8C%96%E7%AF%87/16952827002988.jpg"></p>
+
     </div>
 
     
@@ -260,7 +256,6 @@
 
       <footer class="post-footer">
           <div class="post-tags">
-              <a href="/tags/self/" rel="tag"># self</a>
               <a href="/tags/js/" rel="tag"># js</a>
           </div>
 
@@ -332,6 +327,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E8%A1%A5%E7%8E%AF%E5%A2%83%E6%A1%86%E6%9E%B6%E4%BC%98%E5%8C%96%E7%AF%87"><span class="nav-number">1.</span> <span class="nav-text">补环境框架优化篇</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8E%9F%E5%9E%8B%E9%93%BE"><span class="nav-number">1.1.</span> <span class="nav-text">原型链</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#document"><span class="nav-number">1.2.</span> <span class="nav-text">document</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%95%88%E6%9E%9C"><span class="nav-number">1.3.</span> <span class="nav-text">效果</span></a></li></ol></li></ol></div>
       </div>
       <!--/noindex-->
 
