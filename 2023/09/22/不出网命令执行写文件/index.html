@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"f19t.github.io.git","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":"mac"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="不出网命令执行写文件在挖掘漏洞的时候我们会遇见这么一种情况，目标网站存在命令执行，但是无法写webshell，也不出网，这种情况我们如何扩大成果。 环境说明  jenkins:1.609.3  我这里搭建了一个jenkins未授权访问的demo。 1docker pull jenkins:1.609.3">
+<meta property="og:type" content="article">
+<meta property="og:title" content="不出网命令执行写文件">
+<meta property="og:url" content="https://f19t.github.io.git/2023/09/22/%E4%B8%8D%E5%87%BA%E7%BD%91%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E5%86%99%E6%96%87%E4%BB%B6/index.html">
+<meta property="og:site_name" content="个人博客">
+<meta property="og:description" content="不出网命令执行写文件在挖掘漏洞的时候我们会遇见这么一种情况，目标网站存在命令执行，但是无法写webshell，也不出网，这种情况我们如何扩大成果。 环境说明  jenkins:1.609.3  我这里搭建了一个jenkins未授权访问的demo。 1docker pull jenkins:1.609.3">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://f19t.github.io.git/2023/09/22/%E4%B8%8D%E5%87%BA%E7%BD%91%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E5%86%99%E6%96%87%E4%BB%B6/16953665343590.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/09/22/%E4%B8%8D%E5%87%BA%E7%BD%91%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E5%86%99%E6%96%87%E4%BB%B6/16953665796700.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/09/22/%E4%B8%8D%E5%87%BA%E7%BD%91%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E5%86%99%E6%96%87%E4%BB%B6/16953820154191.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/09/22/%E4%B8%8D%E5%87%BA%E7%BD%91%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E5%86%99%E6%96%87%E4%BB%B6/16953821157716.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/09/22/%E4%B8%8D%E5%87%BA%E7%BD%91%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E5%86%99%E6%96%87%E4%BB%B6/16953826692251.jpg">
+<meta property="og:image" content="https://f19t.github.io.git/2023/09/22/%E4%B8%8D%E5%87%BA%E7%BD%91%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E5%86%99%E6%96%87%E4%BB%B6/16953826950908.jpg">
+<meta property="article:published_time" content="2023-09-22T11:41:21.000Z">
+<meta property="article:modified_time" content="2023-09-22T11:45:57.707Z">
+<meta property="article:author" content="f19t">
+<meta property="article:tag" content="渗透Tips">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://f19t.github.io.git/2023/09/22/%E4%B8%8D%E5%87%BA%E7%BD%91%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E5%86%99%E6%96%87%E4%BB%B6/16953665343590.jpg">
+
+<link rel="canonical" href="https://f19t.github.io.git/2023/09/22/%E4%B8%8D%E5%87%BA%E7%BD%91%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E5%86%99%E6%96%87%E4%BB%B6/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>不出网命令执行写文件 | 个人博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">个人博客</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://f19t.github.io.git/2023/09/22/%E4%B8%8D%E5%87%BA%E7%BD%91%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E5%86%99%E6%96%87%E4%BB%B6/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="f19t">
+      <meta itemprop="description" content="个人学习的一些记录。">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="个人博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          不出网命令执行写文件
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2023-09-22 19:41:21 / 修改时间：19:45:57" itemprop="dateCreated datePublished" datetime="2023-09-22T19:41:21+08:00">2023-09-22</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/" itemprop="url" rel="index"><span itemprop="name">渗透测试</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="不出网命令执行写文件"><a href="#不出网命令执行写文件" class="headerlink" title="不出网命令执行写文件"></a>不出网命令执行写文件</h1><p>在挖掘漏洞的时候我们会遇见这么一种情况，目标网站存在命令执行，但是无法写webshell，也不出网，这种情况我们如何扩大成果。</p>
+<p><strong>环境说明</strong></p>
+<ul>
+<li>jenkins:1.609.3</li>
+</ul>
+<p>我这里搭建了一个jenkins未授权访问的demo。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker pull jenkins:1.609.3</span><br></pre></td></tr></table></figure>
+<span id="more"></span>
+
+<p>搭建好之后，我们发现他是可以命令执行的。<br><img src="/2023/09/22/%E4%B8%8D%E5%87%BA%E7%BD%91%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E5%86%99%E6%96%87%E4%BB%B6/16953665343590.jpg"></p>
+<p>并且可以看到服务是war包起的，我们不能写webshell（<font color=red>应该是可以写的内存马的，他这个终端可以执行java代码，我只是使用这个例子</font>），不出网的情况下，如果我们想扩大成果，比如传扫描器，或者写内存马，都需要用到文件上传，我们使用这个例子，来解决<font color=red>不出网如何写文件</font>。<br><img src="/2023/09/22/%E4%B8%8D%E5%87%BA%E7%BD%91%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E5%86%99%E6%96%87%E4%BB%B6/16953665796700.jpg"></p>
+<h2 id="原理"><a href="#原理" class="headerlink" title="原理"></a>原理</h2><p>总的来说是比较简单的，命令上传文件需要五个步骤。</p>
+<ul>
+<li>需要上传的文件，编码成base64</li>
+<li>将base64文本使用命令写到txt里面</li>
+<li>shell脚本按照顺序合并所有base编码的文件</li>
+<li>base64 -d转码成二进制文件</li>
+<li>chmod赋予权限。</li>
+</ul>
+<h3 id="获取文件base64编码"><a href="#获取文件base64编码" class="headerlink" title="获取文件base64编码"></a>获取文件base64编码</h3><p>我们知道文件是可以转base64，并且base64也是可以转文件的。<br>一个二进制文件是很大的，他获取的base64编码是很长的，所以需要进行分割。<br><img src="/2023/09/22/%E4%B8%8D%E5%87%BA%E7%BD%91%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E5%86%99%E6%96%87%E4%BB%B6/16953820154191.jpg"></p>
+<p>这样我们就获得了需要上传文件的base64列表。</p>
+<h3 id="命令执行器"><a href="#命令执行器" class="headerlink" title="命令执行器"></a>命令执行器</h3><p>之后定义一个命令执行的请求函数，将payload动态的插入进去。<br><img src="/2023/09/22/%E4%B8%8D%E5%87%BA%E7%BD%91%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E5%86%99%E6%96%87%E4%BB%B6/16953821157716.jpg"></p>
+<h3 id="执行命令分发器"><a href="#执行命令分发器" class="headerlink" title="执行命令分发器"></a>执行命令分发器</h3><p>编写一个命令执行的分发器，按照下方步骤：</p>
+<ul>
+<li>创建自定义目录</li>
+<li>上传base文件</li>
+<li>合并base64文件</li>
+<li>base64解码还原</li>
+<li>赋予执行权限</li>
+</ul>
+<p><img src="/2023/09/22/%E4%B8%8D%E5%87%BA%E7%BD%91%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E5%86%99%E6%96%87%E4%BB%B6/16953826692251.jpg"></p>
+<p>就可以上传成功了。</p>
+<p>本地测试截图：<br>我这里传的fscan，确实可以通过命令使用base64编码还原二进制文件。<br><img src="/2023/09/22/%E4%B8%8D%E5%87%BA%E7%BD%91%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E5%86%99%E6%96%87%E4%BB%B6/16953826950908.jpg"></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E6%B8%97%E9%80%8FTips/" rel="tag"># 渗透Tips</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2023/09/21/%E8%A1%A5%E7%8E%AF%E5%A2%83%E6%A1%86%E6%9E%B6%E4%BC%98%E5%8C%96%E7%AF%87/" rel="prev" title="补环境框架优化篇">
+      <i class="fa fa-chevron-left"></i> 补环境框架优化篇
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%8D%E5%87%BA%E7%BD%91%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E5%86%99%E6%96%87%E4%BB%B6"><span class="nav-number">1.</span> <span class="nav-text">不出网命令执行写文件</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8E%9F%E7%90%86"><span class="nav-number">1.1.</span> <span class="nav-text">原理</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%8E%B7%E5%8F%96%E6%96%87%E4%BB%B6base64%E7%BC%96%E7%A0%81"><span class="nav-number">1.1.1.</span> <span class="nav-text">获取文件base64编码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E5%99%A8"><span class="nav-number">1.1.2.</span> <span class="nav-text">命令执行器</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%89%A7%E8%A1%8C%E5%91%BD%E4%BB%A4%E5%88%86%E5%8F%91%E5%99%A8"><span class="nav-number">1.1.3.</span> <span class="nav-text">执行命令分发器</span></a></li></ol></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">f19t</p>
+  <div class="site-description" itemprop="description">个人学习的一些记录。</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">31</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">11</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        <!--
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">f19t</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+-->
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
