@@ -20,25 +20,19 @@
     var CONFIG = {"hostname":"f19t.github.io.git","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":"mac"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
   </script>
 
-  <meta name="description" content="不出网命令执行写文件在挖掘漏洞的时候我们会遇见这么一种情况，目标网站存在命令执行，但是无法写webshell，也不出网，这种情况我们如何扩大成果。 环境说明  jenkins:1.609.3  我这里搭建了一个jenkins未授权访问的demo。 1docker pull jenkins:1.609.3">
+  <meta name="description" content="有东西被加密了, 请输入密码查看.">
 <meta property="og:type" content="article">
 <meta property="og:title" content="不出网命令执行写文件">
 <meta property="og:url" content="https://f19t.github.io.git/2023/09/22/%E4%B8%8D%E5%87%BA%E7%BD%91%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E5%86%99%E6%96%87%E4%BB%B6/index.html">
 <meta property="og:site_name" content="个人博客">
-<meta property="og:description" content="不出网命令执行写文件在挖掘漏洞的时候我们会遇见这么一种情况，目标网站存在命令执行，但是无法写webshell，也不出网，这种情况我们如何扩大成果。 环境说明  jenkins:1.609.3  我这里搭建了一个jenkins未授权访问的demo。 1docker pull jenkins:1.609.3">
+<meta property="og:description" content="有东西被加密了, 请输入密码查看.">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="https://f19t.github.io.git/2023/09/22/%E4%B8%8D%E5%87%BA%E7%BD%91%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E5%86%99%E6%96%87%E4%BB%B6/16953665343590.jpg">
-<meta property="og:image" content="https://f19t.github.io.git/2023/09/22/%E4%B8%8D%E5%87%BA%E7%BD%91%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E5%86%99%E6%96%87%E4%BB%B6/16953665796700.jpg">
-<meta property="og:image" content="https://f19t.github.io.git/2023/09/22/%E4%B8%8D%E5%87%BA%E7%BD%91%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E5%86%99%E6%96%87%E4%BB%B6/16953820154191.jpg">
-<meta property="og:image" content="https://f19t.github.io.git/2023/09/22/%E4%B8%8D%E5%87%BA%E7%BD%91%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E5%86%99%E6%96%87%E4%BB%B6/16953821157716.jpg">
-<meta property="og:image" content="https://f19t.github.io.git/2023/09/22/%E4%B8%8D%E5%87%BA%E7%BD%91%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E5%86%99%E6%96%87%E4%BB%B6/16953826692251.jpg">
-<meta property="og:image" content="https://f19t.github.io.git/2023/09/22/%E4%B8%8D%E5%87%BA%E7%BD%91%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E5%86%99%E6%96%87%E4%BB%B6/16953826950908.jpg">
 <meta property="article:published_time" content="2023-09-22T11:41:21.000Z">
-<meta property="article:modified_time" content="2023-09-22T11:45:57.707Z">
+<meta property="article:modified_time" content="2023-09-24T12:41:32.646Z">
 <meta property="article:author" content="f19t">
+<meta property="article:tag" content="self">
 <meta property="article:tag" content="渗透Tips">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="https://f19t.github.io.git/2023/09/22/%E4%B8%8D%E5%87%BA%E7%BD%91%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E5%86%99%E6%96%87%E4%BB%B6/16953665343590.jpg">
 
 <link rel="canonical" href="https://f19t.github.io.git/2023/09/22/%E4%B8%8D%E5%87%BA%E7%BD%91%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E5%86%99%E6%96%87%E4%BB%B6/">
 
@@ -218,10 +212,16 @@
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">发表于</span>
-              
 
-              <time title="创建时间：2023-09-22 19:41:21 / 修改时间：19:45:57" itemprop="dateCreated datePublished" datetime="2023-09-22T19:41:21+08:00">2023-09-22</time>
+              <time title="创建时间：2023-09-22 19:41:21" itemprop="dateCreated datePublished" datetime="2023-09-22T19:41:21+08:00">2023-09-22</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2023-09-24 20:41:32" itemprop="dateModified" datetime="2023-09-24T20:41:32+08:00">2023-09-24</time>
+              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="far fa-folder"></i>
@@ -243,40 +243,21 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <h1 id="不出网命令执行写文件"><a href="#不出网命令执行写文件" class="headerlink" title="不出网命令执行写文件"></a>不出网命令执行写文件</h1><p>在挖掘漏洞的时候我们会遇见这么一种情况，目标网站存在命令执行，但是无法写webshell，也不出网，这种情况我们如何扩大成果。</p>
-<p><strong>环境说明</strong></p>
-<ul>
-<li>jenkins:1.609.3</li>
-</ul>
-<p>我这里搭建了一个jenkins未授权访问的demo。</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker pull jenkins:1.609.3</span><br></pre></td></tr></table></figure>
-<span id="more"></span>
-
-<p>搭建好之后，我们发现他是可以命令执行的。<br><img src="/2023/09/22/%E4%B8%8D%E5%87%BA%E7%BD%91%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E5%86%99%E6%96%87%E4%BB%B6/16953665343590.jpg"></p>
-<p>并且可以看到服务是war包起的，我们不能写webshell（<font color=red>应该是可以写的内存马的，他这个终端可以执行java代码，我只是使用这个例子</font>），不出网的情况下，如果我们想扩大成果，比如传扫描器，或者写内存马，都需要用到文件上传，我们使用这个例子，来解决<font color=red>不出网如何写文件</font>。<br><img src="/2023/09/22/%E4%B8%8D%E5%87%BA%E7%BD%91%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E5%86%99%E6%96%87%E4%BB%B6/16953665796700.jpg"></p>
-<h2 id="原理"><a href="#原理" class="headerlink" title="原理"></a>原理</h2><p>总的来说是比较简单的，命令上传文件需要五个步骤。</p>
-<ul>
-<li>需要上传的文件，编码成base64</li>
-<li>将base64文本使用命令写到txt里面</li>
-<li>shell脚本按照顺序合并所有base编码的文件</li>
-<li>base64 -d转码成二进制文件</li>
-<li>chmod赋予权限。</li>
-</ul>
-<h3 id="获取文件base64编码"><a href="#获取文件base64编码" class="headerlink" title="获取文件base64编码"></a>获取文件base64编码</h3><p>我们知道文件是可以转base64，并且base64也是可以转文件的。<br>一个二进制文件是很大的，他获取的base64编码是很长的，所以需要进行分割。<br><img src="/2023/09/22/%E4%B8%8D%E5%87%BA%E7%BD%91%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E5%86%99%E6%96%87%E4%BB%B6/16953820154191.jpg"></p>
-<p>这样我们就获得了需要上传文件的base64列表。</p>
-<h3 id="命令执行器"><a href="#命令执行器" class="headerlink" title="命令执行器"></a>命令执行器</h3><p>之后定义一个命令执行的请求函数，将payload动态的插入进去。<br><img src="/2023/09/22/%E4%B8%8D%E5%87%BA%E7%BD%91%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E5%86%99%E6%96%87%E4%BB%B6/16953821157716.jpg"></p>
-<h3 id="执行命令分发器"><a href="#执行命令分发器" class="headerlink" title="执行命令分发器"></a>执行命令分发器</h3><p>编写一个命令执行的分发器，按照下方步骤：</p>
-<ul>
-<li>创建自定义目录</li>
-<li>上传base文件</li>
-<li>合并base64文件</li>
-<li>base64解码还原</li>
-<li>赋予执行权限</li>
-</ul>
-<p><img src="/2023/09/22/%E4%B8%8D%E5%87%BA%E7%BD%91%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E5%86%99%E6%96%87%E4%BB%B6/16953826692251.jpg"></p>
-<p>就可以上传成功了。</p>
-<p>本地测试截图：<br>我这里传的fscan，确实可以通过命令使用base64编码还原二进制文件。<br><img src="/2023/09/22/%E4%B8%8D%E5%87%BA%E7%BD%91%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E5%86%99%E6%96%87%E4%BB%B6/16953826950908.jpg"></p>
-
+        <div class="hbe hbe-container" id="hexo-blog-encrypt" data-wpm="抱歉, 这个密码看着不太对, 请再试试." data-whm="抱歉, 这个文章不能被校验, 不过您还是能看看解密后的内容.">
+  <script id="hbeData" type="hbeData" data-hmacdigest="b2ddc3faec2301bc82e2ca5ec869d7c5724c98402576823d7fb35398a976ff28">a4c6b405e362c4ead0ad72d17a52fa534e5c48f67935f31dc76b803e192abd9a8ac86678edcdf955b3f441f9bf69e9e6c1384aef61e8f24484cea7f8225ef617d238170aeee6e0993e31a88fce3b9a664eb6748e6c19a72cdaceb3b73dbf5581776285c7bf4941a10a1e6c7a0296b899124ba87ce15c36dfa075166bcb9c587256344789c48e1a7346b82c79c53caa3c5549fa71f3d552f76d4ba4807e93659ed6f4f7dd459e2cbb045ab225bd5dee03ff4af4ddd9e42cea3112f84daede61c27aeb7c35a293990412f4fcbc66977d0c1a3663ea1d12a7af30299133695511cdd4f62ea740707df3d64bf5fb88ceebbaaf7785002f19acca29ef895c9031fe8290f86905149b7e67c192145e776f0c80e00b95f0fed280c4a05f457692cec778197190d0cc4a978f55102e4b6686da45b66209648b5e610451b5cf1195a6c39495381838597b9dc55b57fdad8cca3bee78777c818c937508fdec1dc81630197b341b347a2ed04678aaf4d3da121d19ba33e34e0b0f83f374e3eeda4bf58c658d2224a28b8090b369df0320b78b922409e27e4557bd579160a509f8bbfd7c610dee4829a8e55ac58c0ae98b773136c3bbde33d7af3729d031e5299ab6a97bda090285a8dbd795fbe47861d6870a6886db92575fe675ddde626f7bbc81f78d3123bb13b6677b9b5c574d885f63f21963758a1efad94f9f6825b54fb8617a17210ffa90d826df1b84ba0a534ab109d533b67f1578f1e2be8fc2103c8280dcc46d505e3612f7a411179a5a59349006d8ce25cffa79edf11b97292c9bc1af299ba462c1a594cb8d17900bde01a77f5f6fb8d2701707249c3ade9955edf1606c91e4d650f3b4a940cbb388495c87a07db7d829a90c289680638f4ec073e794193f07bb041b91ac08da045209607fbfe316070fda3f33e3b63e8f9c6bf1f35b0a815a581c4ef664cfcc3fd47132880d7ac9c0e97151541b0d31347dde6c57ef34cef8cf48edd85902821fbb8a2bec76ef707462b42e74582eb0cd43e66ca8308cfc1a8b8ceea2902f47fce2cfa0f5a2ea6e4109a85e4e77fe44acdea07b7e3e4f2a88e3adf25f345706f2dec2c54c2858c6049b06995eb0465796ef5e4538e7170f8fa612a7cd05e58ab4bb746d9e237354f7e544d45cb3e95bdff80e3cf1130aedaa645f87a83b7a8ebddd4b366982563d9ea69fc9462dc1b29a4e59022e175489739d78bb3c6bf289c5620106a8299f924fe14c1ed7cc4286c6ca7dca7cf0dd6f2d9c68f9e95ec5a50b1d53b79a0d3d8f7b85e875fc2339a909e8da3c2beb9ecee32f64643233c484b858781c31d6048665398fb8fe924a54302a429e0ff879b64a2a30cf60c6fa57607ad71d9b2f8978561966db46f273a173e30db453da1796b18a8d73fd12c0f7d33384d16cc7979c8727c3477742acced67ccfa11e02720323e1bbf974c452fe577fa12740191381970cc34f1f2b3c258b39d0cf62b719d8c37b487459862b67580ce18e9e3c18b3fcdfeea5322cc6ec79d276d00ba10a37c9b8bd9f14ae474d0c83fd93479113069d98a26bba3acd364f3c83b24ab60e6150947bc1662c9ca2ac75f0b1c48e1bd516505183aea996c57106c99e18420135cfc3f8b7aebb7f26208585f105ffbc1a0c3b20adb319c15dc1c0d585ef5061a543fc85eafe322c40c0be1e52f108313580c30c74cb95743fdeb00d6f2743c3d03f2ff57b04c2eb4637c57fc196ed6a1efb4710562fb713d33ba571ec74e5b4766b5bc3c592ced7222b97a2837e650e7a6625a62363c2cd0be684752c7420d9ba0b309d6c94ee2fe69b292fbf704cee2ab43803e8dd9bd90b0a41d71e60447664a445897282acd8d4aaf46c4eedf83c532b892563c70955fc42c56a4ba4b2e13748b0963913e0bf572a1c5fedc287a88fbe3672fb881c80e1882587f4a63c952953684e7335edcde8347782440f365bc5d8165ae17842fa272ce923f61cc1d232d8aa188418545ce86523291f673680dc1e748055eaf1aebac397aa83d8ddd9546db9c0c3d4d007ac7e01d71244876813736f9c48e81c94b97a812f515c3408a9fe682a800bda8477ec831aac9f8ed7782ed9002cb3a1862dd5df6d077cc8d5abeac360d7a247ee7ae32c2fbd0937f70dfcfd49ebe1600ba12a5514ccabadcc447e0945c8b5896c511f4c76fb854ff0578f01c8bbed00f9bda423a4364a70078af27a6be6fcbffeed2d0200d96de03e4adc3a5198a21debd18e8a35d773ed6d3130a1c83551f07342406628b93ff877dc87670e34e7018ef9c0a7657d6173bd9b055f1ad49e00c07093badad1acac71e86a37aba2ad53df0d7a13c7959f62b795717d375c754ffe40ff4db1d9cc70c41df74304b0495289dabc78f3a67092454bccc67b0f418c8e02e76664173dea528aae1ee0b308c4e91c1f2f92941479d2f966de818b3e57e3a6ef148523b4b01863559dbb00a6e9b242ad7d184b488bd95f901ff2d4895b53533a60819f3079462e838b6a4b03b99d2d1ec4adf5752a13e663efdf3a68a5b50c8ff3a933987a15821cd75bae17f2729fb9fa109d103de76b4e35de9cb3940af16fbae05e126278f939c619cf1cd7198a38fa69f276e9065093459d591ee9bb5bdc7b7462c9879bddef4b71e11533f24342539c0b093c1a274ecd92c4762f72bb37f1e0e48235de17b846ca0dddfe462feacdb04f0702efbe5e04c344151a0ec01b9bf4aff3e29d7c3200cfe3f85cbf6981400767ec17c36b4bb7e45482cb610128f35f352de8babd36fcb2552b8e668341d46c3c0ab3e055285ea09d8bdf80f0190fa57e79af005dcf5e5b34fe4631877a241f3c99d63e33ed5544b635ec3e59c31af3c98c0fd936b430157aeba0e45d5b31bd86037ae5df60fb056f8668e8575e758ff9c327cea763adf0c0bd666c1e6c815e89586e3e9cd18092e055effff9c6c03a360708809f678b5dbdfc6526a136d6c0f675df418e08db0ed641561ad4d67d0e06189bb4bdba7438cbc61f5edfc44dfd4c6309d2e948e168bf6bcee319bb0a4c338ee8fcd0d5fc160bd75eb705329dde9249762004e0e43c77682462f23c6c1e3b6d6b4de2dfea74a39ed32908747dc0163dd70bb4f5dfed04245b8100efdc4512eac5b40b764c51dd3cada98b299edbd1a2535b1838a283bca7a45f1749c833187cff2bacc1afe95d60c80a4c573bb7329bf325a5be1d8c0980eba1dad45741438955dff3b38e9d1c82a89f2463565375617fd9de0052a55efc87990512ede9c5305bef4a11c62b1a15affaa15bdc87c9901215e1f2a48018ab4c4cdb5777e6b3cdd9c9a91fa1f2577032a963ead4ca9e9ed24b1a8acea1839e8fc0889c9c5ef860f0e43904102e315d0c4061c92518f9a49bf15254eddc45b1b749817d2fa29121037923deaf53e3062eb51a3f95a1a14abb775c251e84cf22c4aa2036ebaaa37c8a4f8bf74f6c1a8b642a3782a59c5fd9a56137a235f90ebaea39b74d5f77e76e77c25cef4377aac0df1455cfd4b4155e12211127e5ad41346cc56ae359f223adea32985e2417bc6881e97974967fcd078c9aa2001745996831bc1bdda60e4a9aded1356080451953be9b7dd0883a87860c5cc27aa1748326712a028ef772de4f2fce2850928073e62c6ddc31ad2ab3085a77ae0419537f6da0b839b0816b9cbe6541b6e269ce70ab38ee9c4512468a06d729cacf876bba6073ba6db61e6c774244073aa8523c393c437b1a78f2cec4645cf9b6976c7763a9e84fb2ccfae265b808b91dae511eb188a898e4d410119551b12b5bf1a91cd46c84317a4db7db2e8cdbee4af1c4aa9da87a18afad48838a986609d2d15b611e28f7e2d737e2a0a067796b94ff450ee917b9026f0fbc0e0286428c2c94478eb5149514d6adb0b20ded284495e5e792710fde81aff48f6f556d203504a5e7aba373225e220c890b81636143a575404752a4929f03e8e6cb93cd9c7f3356d8f93c5d5f1c9370728b68fd73cc66fa144d128142cedd766c4685ef48887b577914d2ccd44d1ef6355981313f37449a45b20d3767c799a6467f25842ae33d59e97cbd12c5809473d4509aa145e21a52c2bb5c0cc4a4e71ba8edbdc0b46dfd73057099e17ba068f9fde45119080090b44e93a3a3bc90b30df5eecf15e7891af8fea552daa853310e0b634136bace17b69d1ac6d4c6d6e8df0ab662de89985ce73aec2b0d8c9faad97e7a091acc2a3498bca0622869250577aa8e3ea3f4990bfd626bf6a261498d480d5f999c0bf074e6f6c22e0e829e7219e4985046154ab53d1f48d157e1976909f75226064d1f5f39c893b3a196959ce39490c3f5a8b27a2cd6005786eab21043bca76e6a7ae3ab62b57054fd00ad3c61cec2185e8f22a039be776a4fa0ba79c3946e56efc00c73513f81e16b1955dbcef6ca61698e9980e7769189928670f63b2f39d732688b49fd0c70298db7669c56f9fefc9fdc911752d0102b86303dc9832e923f0d46f6207c94facab2316570cf18ee6f0917c1953edf2abb4ff54ddb0b77edc7e22361cc68ce19d8f51c864bfd70a686d0af94f1214748fe62574fb05f10eabd196a4600b3cef2568e7c76b0178a3aeaff37a834db90fee852052c5ed425fea9f454efdefd50808cf7cc855c73fca54e8f7f1d60393bbe1ab0cfdf0d754918c961c9cacb011a9137393b4a371a036d99186f6705a73ac6c11276e2dd01fd805052242f50172ae62c983db6644b6151e7a904036eba5da6bf40032446c9cf21cc3eae9a2dcc5d3ead0517668aa32286524bdf53407d0a150fb666892acd3f714f3020c149e22564436fe55bc3476de4b8aecd18d0a2589e2590044a3da20525fb81c5f7e92013012419174db8363131e55229c81e77f6bb044347c99854706eabfbf38a08b5653ce6603925d84670fb86c8d3ff92026f4f1f9e5e80c5934d6c1cb9faf3acfb3bd2842ae7cf08e3b74af15c32d70b854a1aa9dbf07da6744192a025cb0dd878c26e4160ce8f64274b2cc0567ddba9375c81aa25b657b1c00e3bbe7a540fc029eff407f0af994ff7963e2b34382bdb6a622846b2dbd4da1903e19dbcbce8125f007f9bf23fd46c6d116f64dc878b49bdd14caa05708c93f2fca6fe231fdb50c4e8af3fa00e9516f516d72b66e579f3558e</script>
+  <div class="hbe hbe-content">
+    <div class="hbe hbe-input hbe-input-wave">
+      <input class="hbe hbe-input-field hbe-input-field-wave" type="password" id="hbePass">
+      <label class="hbe hbe-input-label hbe-input-label-wave" for="hbePass">
+        <span class="hbe hbe-input-label-content hbe-input-label-content-wave">您好, 这里需要密码.</span>
+      </label>
+      <svg class="hbe hbe-graphic hbe-graphic-wave" width="300%" height="100%" viewBox="0 0 1200 60" preserveAspectRatio="none">
+        <path d="M0,56.5c0,0,298.666,0,399.333,0C448.336,56.5,513.994,46,597,46c77.327,0,135,10.5,200.999,10.5c95.996,0,402.001,0,402.001,0"></path>
+      </svg>
+    </div>
+  </div>
+</div>
+<script data-pjax src="/lib/hbe.js"></script><link href="/css/hbe.style.css" rel="stylesheet" type="text/css">
     </div>
 
     
@@ -285,6 +266,7 @@
 
       <footer class="post-footer">
           <div class="post-tags">
+              <a href="/tags/self/" rel="tag"># self</a>
               <a href="/tags/%E6%B8%97%E9%80%8FTips/" rel="tag"># 渗透Tips</a>
           </div>
 
@@ -356,7 +338,6 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%8D%E5%87%BA%E7%BD%91%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E5%86%99%E6%96%87%E4%BB%B6"><span class="nav-number">1.</span> <span class="nav-text">不出网命令执行写文件</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8E%9F%E7%90%86"><span class="nav-number">1.1.</span> <span class="nav-text">原理</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%8E%B7%E5%8F%96%E6%96%87%E4%BB%B6base64%E7%BC%96%E7%A0%81"><span class="nav-number">1.1.1.</span> <span class="nav-text">获取文件base64编码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E5%99%A8"><span class="nav-number">1.1.2.</span> <span class="nav-text">命令执行器</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%89%A7%E8%A1%8C%E5%91%BD%E4%BB%A4%E5%88%86%E5%8F%91%E5%99%A8"><span class="nav-number">1.1.3.</span> <span class="nav-text">执行命令分发器</span></a></li></ol></li></ol></li></ol></div>
       </div>
       <!--/noindex-->
 
